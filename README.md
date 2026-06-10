@@ -83,6 +83,9 @@ If Homebrew is not available, download the latest release from
 <https://github.com/provasign/shale/releases/latest> and put the `shale` binary
 on your `PATH`.
 
+If Homebrew asks you to trust the tap, run
+`brew trust --formula provasign/shale/shale`, then retry `brew install shale`.
+
 `shale init` writes the steering prompt, repo-level hook config, `.shale/`, the
 PR workflow, and a local pre-push hook. Repo hooks are guarded: teammates who
 clone the repo before installing Shale see no hook errors. Developers who want

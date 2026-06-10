@@ -427,6 +427,9 @@ brew tap provasign/shale
 brew install shale
 ```
 
+If Homebrew asks the user to trust the tap, use
+`brew trust --formula provasign/shale/shale` and rerun `brew install shale`.
+
 ### 5.2 Formula file — `Formula/shale.rb`
 
 GoReleaser writes this file to the tap on every tag release. A generated
