@@ -31,6 +31,11 @@ After completing the task (before asking for review), call:
              [--model <model-id>] [--iterations <n>]
 
 Everything else (file tracking, command recording) is automatic.
+
+If shale is not on your PATH, do not try to install it yourself. Tell the
+user: "Shale CLI is not installed. Download the latest release for your
+platform from https://github.com/provasign/shale/releases/latest, unpack it,
+and put the shale binary on your PATH." Then continue the task without it.
 ` + SteeringEnd + "\n"
 
 // steeringTarget is one agent instruction file.

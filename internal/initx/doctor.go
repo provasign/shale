@@ -27,10 +27,17 @@ func Doctor(repoRoot string) []Check {
 	add("steering prompt present", HasSteering(repoRoot),
 		"run `shale init` — without the steering prompt no agent will declare intent")
 
-	if p, err := ClaudeSettingsPath(); err == nil {
-		add("Claude Code capture hooks installed", HasClaudeHooks(p),
-			"run `shale init` to wire hooks into "+p)
+	claudeOK := HasClaudeHooks(filepath.Join(repoRoot, ".claude", "settings.json"))
+	if !claudeOK {
+		if p, err := ClaudeSettingsPath(); err == nil {
+			claudeOK = HasClaudeHooks(p)
+		}
 	}
+	add("Claude Code capture hooks installed (repo or global)", claudeOK,
+		"run `shale init` to write .claude/settings.json (or `shale init --global`)")
+
+	add("multi-agent repo hook configs present", HasRepoHooks(repoRoot),
+		"run `shale init` to write .github/hooks/shale.json, .cursor/hooks.json, .codex/hooks.json")
 
 	_, err := os.Stat(filepath.Join(repoRoot, ".shale", "schema-version"))
 	add(".shale/ scaffold present", err == nil, "run `shale init`")

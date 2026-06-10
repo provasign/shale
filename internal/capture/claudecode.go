@@ -85,7 +85,9 @@ func ParseClaudeCode(raw []byte, now time.Time) (events []store.Event, sessionID
 				events = append(events, store.Event{Kind: store.KindCommand, At: at, Cmd: in.Command, ExitCode: resp.ExitCode})
 			}
 		}
-	case "Stop":
+	case "Stop", "SessionEnd":
+		// Stop fires per turn, SessionEnd once at termination. Both mark
+		// last activity; finalize is idempotent, so duplicates are harmless.
 		events = append(events, store.Event{Kind: store.KindSessionEnd, At: at})
 	}
 	return events, sessionID, cwd
