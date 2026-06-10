@@ -33,8 +33,9 @@ After completing the task (before asking for review), call:
 Everything else (file tracking, command recording) is automatic.
 
 If shale is not on your PATH, do not try to install it yourself. Tell the
-user: "Shale CLI is not installed. Download the latest release for your
-platform from https://github.com/provasign/shale/releases/latest, unpack it,
+user: "Shale CLI is not installed. Install it with:
+  brew install provasign/shale/shale
+or download the latest release from https://github.com/provasign/shale/releases/latest
 and put the shale binary on your PATH." Then continue the task without it.
 ` + SteeringEnd + "\n"
 

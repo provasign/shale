@@ -372,13 +372,15 @@ Portability details are implemented per vendor shape:
 **Layer 2 — steering tells the agent to prompt the developer (no auto-install).**
 The steering block is read by the *agent*, which detects the missing binary —
 but it does **not** install anything itself. It surfaces a clear, actionable
-message to the developer with the download URL. Add to `SteeringBlock`:
+message to the developer with Homebrew as the primary path and GitHub Releases
+as the fallback. `SteeringBlock` says:
 
 ```
 If `shale` is not on your PATH, do not try to install it yourself. Tell the
-user: "Shale CLI is not installed. Download the latest release for your
-platform from https://github.com/provasign/shale/releases/latest, unpack it,
-and put the `shale` binary on your PATH." Then continue without it.
+user: "Shale CLI is not installed. Install it with:
+  brew install provasign/shale/shale
+or download the latest release from https://github.com/provasign/shale/releases/latest
+and put the shale binary on your PATH." Then continue without it.
 ```
 
 Two deliberate choices:
@@ -388,13 +390,9 @@ Two deliberate choices:
   no-surprise-network-calls posture (ADR D6). The developer stays in control of
   what lands on their machine; the agent's only job is to tell them precisely
   what to do and where.
-- **GitHub Releases `latest`, not a package manager.** The canonical install URL
-  is `https://github.com/provasign/shale/releases/latest` — it always resolves
-  to the newest published release, with the per-platform
-  `shale_{os}_{arch}.tar.gz` assets and their `.sha256` files. There is no
-  working `brew` formula yet (the goreleaser homebrew-tap was never created), so
-  Releases is the *only* real install path today. When a tap or other package
-  manager ships, add it here; until then, do not advertise it.
+- **Homebrew first, Releases fallback.** Homebrew is the lowest-friction path
+  on macOS/Linux. GitHub Releases remain the direct-download fallback and the
+  source for CI/action downloads.
 
 **Layer 3 — existing safety nets (backstop + discovery).** Nothing new to build:
 
@@ -402,9 +400,9 @@ Two deliberate choices:
   echo …` means a missing binary at push time skips finalize and lets the push
   through (`initx/hooks.go`);
 - the **PR card nudge** is the discovery surface — a PR with no evidence renders
-  "No shale for this PR … install Shale from GitHub Releases and run
-  `shale init`" (`render.Nudge`), so anyone who slips through every other layer
-  still sees exactly what to do, on the PR itself.
+  "No shale for this PR … `brew install provasign/shale/shale && shale init`"
+  (`render.Nudge`), so anyone who slips through every other layer still sees
+  exactly what to do, on the PR itself.
 
 Optionally, `shale init` can append a short install note to `CONTRIBUTING.md`
 (idempotent, marker-fenced like the steering block) so the human-readable path
@@ -413,16 +411,15 @@ quiet without it.
 
 ---
 
-## 5. Distribution — making `shale` installable via Homebrew
+## 5. Distribution — Homebrew + GitHub Releases
 
-The install URL cited in the steering block and the self-guarding hook check
-(`command -v shale`) points to GitHub Releases today. Homebrew is the
-lowest-friction install path on macOS and Linux; here is how to stand it up.
+Homebrew is the primary install path on macOS and Linux. GitHub Releases remain
+the fallback for direct downloads and CI wrappers.
 
-### 5.1 Create the tap repo
+### 5.1 Tap repo
 
-Create a public GitHub repo named **`provasign/homebrew-shale`** (Homebrew
-requires the `homebrew-` prefix). Once it exists, users install with:
+The public tap repo is **`provasign/homebrew-shale`** (Homebrew requires the
+`homebrew-` prefix). Users install with:
 
 ```sh
 brew install provasign/shale/shale
@@ -432,14 +429,14 @@ brew tap provasign/shale && brew install shale
 
 ### 5.2 Formula file — `Formula/shale.rb`
 
-Add this file to the tap repo. The four `sha256` values come from the
-`.sha256` files attached to each GitHub release.
+GoReleaser writes this file to the tap on every tag release. A generated
+formula looks like this:
 
 ```ruby
 class Shale < Formula
   desc "AI agent PR evidence — capture, verify, render"
   homepage "https://github.com/provasign/shale"
-  version "0.1.8"
+  version "0.1.9"
 
   on_macos do
     if Hardware::CPU.arm?
@@ -478,32 +475,12 @@ Binary releases are automated by `.github/workflows/release.yml`: pushing a
 plus `checksums.txt`. The workflow also has `workflow_dispatch` with a `tag`
 input so an already-pushed tag can be released after the workflow lands.
 
-### 5.4 Automating Homebrew via goreleaser (future)
+### 5.4 Homebrew automation
 
-The `.goreleaser.yaml` in this repo currently publishes GitHub Release assets
-only. Once the tap repo is created:
-
-1. Add a `brews:` section targeting `provasign/homebrew-shale`
-2. Ensure `brews[].repository.name` is set to `homebrew-shale`
-3. Add a `HOMEBREW_TAP_TOKEN` secret to the shale repo (a PAT with `repo` scope
-   on `provasign/homebrew-shale`)
-4. The GoReleaser GitHub Actions workflow will update the formula automatically
-   on each tag push — `version` and all four `sha256` values written for you
-
-Until the tap exists, do not advertise Homebrew as the primary install path.
-
-### 5.5 Steering + nudge update (required with the tap)
-
-When the tap is live, update two places so the install instructions are
-consistent everywhere:
-
-- **`SteeringBlock`** in `internal/initx/steering.go` — replace the Releases
-  URL with `brew install provasign/shale/shale` as the primary instruction and
-  keep the Releases URL as the fallback for non-macOS/Linux.
-- **`render.Nudge()`** in `internal/render/render.go` — currently shows
-  `brew install shale && shale init` (broken — no formula exists yet); once the
-  tap ships, change to `brew install provasign/shale/shale && shale init`.
-  Until then do not change it to advertise a tap that doesn't exist.
+`.goreleaser.yaml` has a `brews:` section targeting
+`provasign/homebrew-shale`, and `.github/workflows/release.yml` passes
+`HOMEBREW_TAP_TOKEN` to GoReleaser. On every `v*` tag, GoReleaser publishes the
+GitHub Release assets and commits the updated formula to the tap.
 
 ---
 

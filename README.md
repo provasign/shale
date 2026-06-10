@@ -69,15 +69,18 @@ What Shale deliberately does **not** do:
 
 ## Quickstart
 
-Install the latest release from
-<https://github.com/provasign/shale/releases/latest>, put the `shale` binary on
-your `PATH`, then run:
+Install Shale, then initialize your repo:
 
 ```sh
+brew install provasign/shale/shale
 cd your-repo
 shale init
 git add . && git commit -m "chore: enable shale"
 ```
+
+If Homebrew is not available, download the latest release from
+<https://github.com/provasign/shale/releases/latest> and put the `shale` binary
+on your `PATH`.
 
 `shale init` writes the steering prompt, repo-level hook config, `.shale/`, the
 PR workflow, and a local pre-push hook. Repo hooks are guarded: teammates who
