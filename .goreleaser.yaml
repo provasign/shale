@@ -22,12 +22,4 @@ checksum:
   name_template: checksums.txt
 
 release:
-  draft: true
-
-brews:
-  - repository:
-      owner: provasign
-      name: homebrew-tap
-    homepage: https://github.com/provasign/shale
-    description: "Agent PR evidence — intent capture and session evidence rendered on pull requests"
-    license: Apache-2.0
+  draft: false

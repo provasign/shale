@@ -439,7 +439,7 @@ Add this file to the tap repo. The four `sha256` values come from the
 class Shale < Formula
   desc "AI agent PR evidence — capture, verify, render"
   homepage "https://github.com/provasign/shale"
-  version "0.1.7"
+  version "0.1.8"
 
   on_macos do
     if Hardware::CPU.arm?
@@ -471,27 +471,26 @@ class Shale < Formula
 end
 ```
 
-### 5.3 Updating on each release
+### 5.3 Binary releases
 
-Until goreleaser is fully automated (see §5.4), updating is one commit to the
-tap repo per release: bump `version` and the four `sha256` values. The values
-are already published — each release asset has a companion
-`shale_{os}_{arch}.tar.gz.sha256` file on the releases page.
+Binary releases are automated by `.github/workflows/release.yml`: pushing a
+`v*` tag runs GoReleaser, publishes the GitHub Release, and uploads archives
+plus `checksums.txt`. The workflow also has `workflow_dispatch` with a `tag`
+input so an already-pushed tag can be released after the workflow lands.
 
-### 5.4 Automating via goreleaser (future)
+### 5.4 Automating Homebrew via goreleaser (future)
 
-The `.goreleaser.yml` in this repo already has a `brews:` section targeting the
-tap. It is currently blocked by `draft: true` in the release config and the tap
-repo not existing. Once the tap repo is created:
+The `.goreleaser.yaml` in this repo currently publishes GitHub Release assets
+only. Once the tap repo is created:
 
-1. Remove (or conditionalize) `draft: true` in `.goreleaser.yml`
+1. Add a `brews:` section targeting `provasign/homebrew-shale`
 2. Ensure `brews[].repository.name` is set to `homebrew-shale`
 3. Add a `HOMEBREW_TAP_TOKEN` secret to the shale repo (a PAT with `repo` scope
    on `provasign/homebrew-shale`)
-4. The goreleaser GitHub Actions workflow will update the formula automatically
+4. The GoReleaser GitHub Actions workflow will update the formula automatically
    on each tag push — `version` and all four `sha256` values written for you
 
-Until automation is wired, the hand-update in §5.3 takes about two minutes.
+Until the tap exists, do not advertise Homebrew as the primary install path.
 
 ### 5.5 Steering + nudge update (required with the tap)
 
