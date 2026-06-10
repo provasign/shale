@@ -195,7 +195,8 @@ func TestInstallRepoHooksRejectsBrokenJSON(t *testing.T) {
 
 func TestInstallGlobalHooksDetectionGated(t *testing.T) {
 	home := t.TempDir()
-	t.Setenv("HOME", home)
+	t.Setenv("HOME", home)        // os.UserHomeDir on unix
+	t.Setenv("USERPROFILE", home) // os.UserHomeDir on Windows
 
 	// No agent dirs: nothing written.
 	written, err := InstallGlobalHooks()

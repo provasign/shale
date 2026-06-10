@@ -81,9 +81,7 @@ type repoHookTarget struct {
 // 2026-06 (docs/06-agent-hooks.md §2); the capture adapters for these
 // agents land in MVP 2 — until then the configs are inert by design.
 func repoHookTargets() []repoHookTarget {
-	entry := func(adapter string) []any {
-		return []any{map[string]any{"type": "command", "command": guardedCapture(adapter)}}
-	}
+	copilotEntry := []any{map[string]any{"type": "command", "command": guardedCapture("copilot")}}
 	codexEntry := []any{map[string]any{
 		"command":        guardedCapture("codex"),
 		"commandWindows": guardedCaptureWindows("codex"),
@@ -95,10 +93,10 @@ func repoHookTargets() []repoHookTarget {
 			Name:    "Copilot",
 			RelPath: filepath.Join(".github", "hooks", "shale.json"),
 			Events: map[string][]any{
-				"sessionStart":        entry("copilot"),
-				"userPromptSubmitted": entry("copilot"),
-				"postToolUse":         entry("copilot"),
-				"sessionEnd":          entry("copilot"),
+				"sessionStart":        copilotEntry,
+				"userPromptSubmitted": copilotEntry,
+				"postToolUse":         copilotEntry,
+				"sessionEnd":          copilotEntry,
 			},
 		},
 		{
