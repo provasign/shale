@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -124,7 +126,10 @@ func (s *Shale) Validate() error {
 		if f.Via != ViaHook && f.Via != ViaGit {
 			return fmt.Errorf("files[%s].via must be hook or git", f.Path)
 		}
-		if filepath.IsAbs(f.Path) {
+		// Spec paths are repo-relative slash paths; validate them the same
+		// way on every platform (filepath.IsAbs misses "/x" on Windows).
+		if path.IsAbs(f.Path) || strings.ContainsRune(f.Path, '\\') ||
+			(len(f.Path) >= 2 && f.Path[1] == ':') {
 			return fmt.Errorf("files[%s]: absolute paths are spec-invalid (rule 3)", f.Path)
 		}
 	}
