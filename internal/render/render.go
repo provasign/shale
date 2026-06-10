@@ -158,7 +158,7 @@ func writeIntents(b *strings.Builder, shales []*store.Shale) {
 			}
 		}
 		meta := fmt.Sprintf("*Declared %s · session `%s`",
-			s.Intent.DeclaredAt.UTC().Format("2006-01-02 15:04"), Sanitize(s.ID))
+			s.Intent.DeclaredAt.UTC().Format("2006-01-02 15:04"), Sanitize(displayID(s.ID)))
 		if s.Transcript != nil {
 			meta += fmt.Sprintf(" · transcript `sha256:%s…`", Sanitize(shortHash(s.Transcript.SHA256)))
 		}
@@ -200,7 +200,7 @@ func writeFiles(b *strings.Builder, in Input) {
 			if prev, ok := evidence[f.Path]; ok && prev.via == store.ViaHook {
 				continue
 			}
-			evidence[f.Path] = fileEvidence{sessionID: s.ID, via: f.Via}
+			evidence[f.Path] = fileEvidence{sessionID: displayID(s.ID), via: f.Via}
 		}
 	}
 
@@ -361,6 +361,16 @@ func topDir(p string) string {
 		return p[:i] + "/"
 	}
 	return "./"
+}
+
+// displayID shortens a session ID for the card. UUIDs (xxxxxxxx-xxxx-…) are
+// trimmed to their first 8 hex chars. Human-readable IDs (no hyphens at
+// position 8) are kept as-is — they're already short by convention.
+func displayID(id string) string {
+	if len(id) >= 36 && id[8] == '-' && id[13] == '-' {
+		return id[:8]
+	}
+	return id
 }
 
 func shortHash(h string) string {
