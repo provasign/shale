@@ -66,7 +66,6 @@ func Card(in Input) string {
 	writeCompletions(&b, in.Shales)
 	writeFiles(&b, in)
 	writeChecks(&b, in.Shales)
-	writeCoverageGaps(&b, in)
 	return b.String()
 }
 
@@ -132,8 +131,11 @@ func writeHeader(b *strings.Builder, shales []*store.Shale) {
 	if iterations > 0 {
 		parts = append(parts, fmt.Sprintf("%d iteration%s", iterations, plural(iterations)))
 	}
-	if dur > 0 {
+	switch {
+	case dur >= time.Minute:
 		parts = append(parts, fmt.Sprintf("%d min", int(dur.Minutes())))
+	case dur > 0:
+		parts = append(parts, "< 1 min")
 	}
 	if len(parts) > 0 {
 		b.WriteString(strings.Join(parts, " · ") + "\n")
@@ -157,11 +159,8 @@ func writeIntents(b *strings.Builder, shales []*store.Shale) {
 		}
 		meta := fmt.Sprintf("*Declared %s · session `%s`",
 			s.Intent.DeclaredAt.UTC().Format("2006-01-02 15:04"), Sanitize(s.ID))
-		if s.Intent.PromptCount > 0 {
-			meta += fmt.Sprintf(" · %d prompt%s", s.Intent.PromptCount, plural(s.Intent.PromptCount))
-		}
 		if s.Transcript != nil {
-			meta += fmt.Sprintf(" · transcript hash `sha256:%s…`", Sanitize(shortHash(s.Transcript.SHA256)))
+			meta += fmt.Sprintf(" · transcript `sha256:%s…`", Sanitize(shortHash(s.Transcript.SHA256)))
 		}
 		b.WriteString("\n" + meta + "*\n")
 	}
@@ -223,7 +222,7 @@ func writeFiles(b *strings.Builder, in Input) {
 				r.notes = "changed during session — not hook-verified"
 			}
 		} else {
-			r.badge = "⚠️ none"
+			r.badge = "—"
 			r.flagged = true
 		}
 		if reason := sensitiveReason(cf.Path); reason != "" {
@@ -239,13 +238,18 @@ func writeFiles(b *strings.Builder, in Input) {
 		rows = append(rows, r)
 	}
 
-	fmt.Fprintf(b, "\n### Changed files (%d) — %d seen in agent sessions, %d not\n",
-		len(in.PRFiles), seen, len(in.PRFiles)-seen)
+	untracked := len(in.PRFiles) - seen
+	if untracked > 0 {
+		fmt.Fprintf(b, "\n### Changed files (%d) — %d with evidence · %d untracked\n",
+			len(in.PRFiles), seen, untracked)
+	} else {
+		fmt.Fprintf(b, "\n### Changed files (%d) — all with session evidence\n", len(in.PRFiles))
+	}
 
 	writeRow := func(r row) {
 		fmt.Fprintf(b, "| %s | %s | %s |\n", code(Sanitize(r.path)), r.badge, r.notes)
 	}
-	header := "| File | Agent session | Notes |\n|---|---|---|\n"
+	header := "| File | Evidence | Notes |\n|---|---|---|\n"
 
 	if len(rows) <= maxFileRows {
 		b.WriteString(header)
@@ -310,28 +314,10 @@ func writeChecks(b *strings.Builder, shales []*store.Shale) {
 	for _, c := range checks {
 		fmt.Fprintf(b, "| %s | %s | %s |\n", code(Sanitize(c.cmd)), c.result, c.when)
 	}
-	b.WriteString("\n*Recorded from the agent session — advisory only. CI remains authoritative.*\n")
+	b.WriteString("\n*Advisory — CI is authoritative.*\n")
 }
 
-func writeCoverageGaps(b *strings.Builder, in Input) {
-	evidence := map[string]bool{}
-	for _, s := range in.Shales {
-		for _, f := range s.Files {
-			evidence[f.Path] = true
-		}
-	}
-	gaps := 0
-	for _, cf := range in.PRFiles {
-		if !evidence[cf.Path] {
-			gaps++
-		}
-	}
-	if gaps == 0 {
-		return
-	}
-	fmt.Fprintf(b, "\n### Coverage gaps\n⚠️ %d changed file%s ha%s no session evidence. They may be hand-edits or\nchanges from an uninstrumented tool.\n",
-		gaps, plural(gaps), map[bool]string{true: "s", false: "ve"}[gaps == 1])
-}
+
 
 // sensitiveReason flags paths a security reviewer must see above the fold.
 // Built-in list per architecture §3.4; policy.yaml override is MVP 3.

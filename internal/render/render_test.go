@@ -92,11 +92,10 @@ func TestCardSingleSession(t *testing.T) {
 		"🧾 Shale · 1 session",
 		"47k tokens", "~$0.47", "3 iterations", "38 min",
 		"**Add rate limiting to the login endpoint**",
-		"14 prompts",
-		"✅ a1b2c3d4e5", "⚠️ none",
+		"✅ a1b2c3d4e5",
 		"dependency manifest", "CI config",
 		"Checks recorded locally", "✅ passed",
-		"Coverage gaps",
+		"with evidence",
 		CommentMarker,
 	} {
 		if !strings.Contains(got, must) {
@@ -121,10 +120,7 @@ func TestCardIgnoresShaleEvidenceFiles(t *testing.T) {
 	if strings.Contains(got, ".shale/") {
 		t.Errorf("evidence files must not appear in the file table:\n%s", got)
 	}
-	if strings.Contains(got, "Coverage gaps") {
-		t.Errorf("evidence files must not count as coverage gaps:\n%s", got)
-	}
-	if !strings.Contains(got, "Changed files (1) — 1 seen in agent sessions, 0 not") {
+	if !strings.Contains(got, "all with session evidence") {
 		t.Errorf("changed-files count must exclude evidence files:\n%s", got)
 	}
 }

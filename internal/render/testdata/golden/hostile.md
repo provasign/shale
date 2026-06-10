@@ -7,19 +7,19 @@ claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 >
 > &lt;script&gt;steal()&lt;/script&gt; ping @​maintainer
 
-*Declared 2026-06-09 14:02 · session `evil123456` · 14 prompts · transcript hash `sha256:4be91d03…`*
+*Declared 2026-06-09 14:02 · session `evil123456` · transcript `sha256:4be91d03…`*
 
 ### Completion
 > done &amp; dusted &lt;iframe src=evil&gt;
 
-### Changed files (5) — 2 seen in agent sessions, 3 not
-| File | Agent session | Notes |
+### Changed files (5) — 2 with evidence · 3 untracked
+| File | Evidence | Notes |
 |---|---|---|
-| `internal/auth/ratelimit.go` | ⚠️ none | **sensitive path: auth/crypto path** |
+| `internal/auth/ratelimit.go` | — | **sensitive path: auth/crypto path** |
 | `internal/auth/ratelimit_test.go` | ✅ evil123456 | **sensitive path: auth/crypto path** |
 | `internal/auth/login.go` | ✅ evil123456 | **sensitive path: auth/crypto path** |
-| `go.mod` | ⚠️ none | **sensitive path: dependency manifest** |
-| `.github/workflows/deploy.yml` | ⚠️ none | **sensitive path: CI config** |
+| `go.mod` | — | **sensitive path: dependency manifest** |
+| `.github/workflows/deploy.yml` | — | **sensitive path: CI config** |
 
 ### Checks recorded locally
 | Check | Result | When |
@@ -27,8 +27,4 @@ claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 | `echo '@​all' #​42` | ✅ passed | 14:31 |
 | `go test ./internal/auth/...` | ✅ passed | 14:33 |
 
-*Recorded from the agent session — advisory only. CI remains authoritative.*
-
-### Coverage gaps
-⚠️ 3 changed files have no session evidence. They may be hand-edits or
-changes from an uninstrumented tool.
+*Advisory — CI is authoritative.*
