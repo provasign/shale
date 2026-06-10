@@ -18,7 +18,7 @@ import (
 // noise that could surface in the agent loop.
 func cmdCapture(args []string, stdin io.Reader, stderr io.Writer) int {
 	if len(args) != 1 {
-		fmt.Fprintln(stderr, "usage: shale capture <adapter>   (adapters: claude-code)")
+		fmt.Fprintln(stderr, "usage: shale capture <adapter>   (adapters: claude-code, codex)")
 		return 0 // fail-open even on misuse
 	}
 	adapter := args[0]
@@ -33,6 +33,8 @@ func cmdCapture(args []string, stdin io.Reader, stderr io.Writer) int {
 	switch adapter {
 	case "claude-code":
 		events, sessionID, cwd = capture.ParseClaudeCode(payload, time.Now())
+	case "codex":
+		events, sessionID, cwd = capture.ParseCodex(payload, time.Now())
 	default:
 		return 0 // unknown adapter: silently fail open (forward compat)
 	}
