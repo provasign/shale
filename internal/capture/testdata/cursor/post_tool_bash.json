@@ -1,0 +1,13 @@
+{
+  "sessionId": "cursor-session-001",
+  "cwd": "/work/my-repo",
+  "hookEventName": "postToolUse",
+  "toolName": "Bash",
+  "toolInput": {
+    "command": "go test ./..."
+  },
+  "toolResponse": {
+    "exitCode": 0
+  },
+  "fixture_agent_version": "cursor hooks schema not publicly discoverable 2026-06; tolerant contract fixture"
+}

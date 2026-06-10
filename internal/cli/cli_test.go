@@ -199,6 +199,23 @@ func TestCaptureWritesCodexEvents(t *testing.T) {
 	}
 }
 
+func TestCaptureWritesCursorEvents(t *testing.T) {
+	root := chrepo(t)
+	run(t, "", "init")
+	payload := `{"sessionId":"cursor-sess","cwd":` + strconv.Quote(root) + `,"hookEventName":"afterFileEdit","toolInfo":{"filePath":"main.go"}}`
+	code, _, _ := run(t, payload, "capture", "cursor")
+	if code != 0 {
+		t.Fatal("capture failed")
+	}
+	events, err := store.ReadEvents(store.SessionPath(root, "cursor-sess"))
+	if err != nil || len(events) != 1 || events[0].Path != "main.go" {
+		t.Fatalf("events = %+v (%v)", events, err)
+	}
+	if store.CurrentSession(root) != "cursor-sess" {
+		t.Fatal("current session not tracked")
+	}
+}
+
 func TestCaptureIgnoresNonShaleRepos(t *testing.T) {
 	root := chrepo(t) // no `shale init` → no .shale/ scaffold
 	payload := `{"session_id":"s","cwd":` + strconv.Quote(root) + `,"hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_path":"a.go"}}`
