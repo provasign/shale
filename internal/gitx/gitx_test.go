@@ -79,11 +79,12 @@ func TestFilesChangedSince(t *testing.T) {
 	if err := AutoCommit(root, []string{"committed.go"}, "change"); err != nil {
 		t.Fatal(err)
 	}
+	writeFile(t, root, "old.go", "package old\n// changed")
 	writeFile(t, root, "uncommitted.go", "package b")
 	writeFile(t, root, ".shale/x.yaml", "noise: true")
 
 	got := FilesChangedSince(root, since)
-	want := map[string]bool{"committed.go": true, "uncommitted.go": true}
+	want := map[string]bool{"committed.go": true, "old.go": true, "uncommitted.go": true}
 	if len(got) != len(want) {
 		t.Fatalf("FilesChangedSince = %v", got)
 	}

@@ -19,7 +19,7 @@ func run(root string, args ...string) (string, error) {
 	cmd.Stdout = &out
 	cmd.Stderr = &bytes.Buffer{}
 	err := cmd.Run()
-	return strings.TrimSpace(out.String()), err
+	return strings.TrimRight(out.String(), "\r\n"), err
 }
 
 // Root returns the repository top-level for dir, or "" when not in a repo.
