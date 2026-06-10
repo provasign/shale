@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Existing tag to release, for example v0.1.9"
+        description: "Existing tag to release, for example v0.1.10"
         required: true
 
 permissions:
@@ -33,4 +33,37 @@ jobs:
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Homebrew formula
+        env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${HOMEBREW_TAP_TOKEN}" ]; then
+            echo "HOMEBREW_TAP_TOKEN is not set; skipping Homebrew tap update."
+            exit 0
+          fi
+
+          formula="dist/homebrew/Formula/shale.rb"
+          if [ ! -f "${formula}" ]; then
+            echo "GoReleaser did not generate ${formula}."
+            exit 1
+          fi
+
+          tap="$(mktemp -d)"
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/provasign/homebrew-shale.git" "${tap}"
+          mkdir -p "${tap}/Formula"
+          cp "${formula}" "${tap}/Formula/shale.rb"
+
+          git -C "${tap}" config user.name "github-actions[bot]"
+          git -C "${tap}" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if [ -z "$(git -C "${tap}" status --porcelain -- Formula/shale.rb)" ]; then
+            echo "Homebrew formula is already current."
+            exit 0
+          fi
+
+          git -C "${tap}" add Formula/shale.rb
+          git -C "${tap}" commit -m "Brew formula update for shale ${GITHUB_REF_NAME}"
+          git -C "${tap}" push origin HEAD:main

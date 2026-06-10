@@ -477,10 +477,11 @@ input so an already-pushed tag can be released after the workflow lands.
 
 ### 5.4 Homebrew automation
 
-`.goreleaser.yaml` has a `brews:` section targeting
-`provasign/homebrew-shale`, and `.github/workflows/release.yml` passes
-`HOMEBREW_TAP_TOKEN` to GoReleaser. On every `v*` tag, GoReleaser publishes the
-GitHub Release assets and commits the updated formula to the tap.
+`.goreleaser.yaml` has a `brews:` section that generates `Formula/shale.rb`, and
+`.github/workflows/release.yml` publishes that generated formula to
+`provasign/homebrew-shale` with `HOMEBREW_TAP_TOKEN`. On every `v*` tag,
+GoReleaser publishes the GitHub Release assets and the workflow commits the
+updated formula to the tap.
 
 ---
 

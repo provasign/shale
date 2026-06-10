@@ -29,8 +29,8 @@ brews:
     repository:
       owner: provasign
       name: homebrew-shale
-      token: "{{ .Env.HOMEBREW_TAP_TOKEN }}"
     directory: Formula
     homepage: https://github.com/provasign/shale
     description: "Agent PR evidence — intent capture and session evidence rendered on pull requests"
     license: Apache-2.0
+    skip_upload: true
