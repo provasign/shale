@@ -190,11 +190,11 @@ exists.
 - [ ] I4b. `shale gc`: prune shale files/transcripts for PRs merged more than a
       retention window ago (default 180d, configurable in policy.yaml);
       history remains the audit record.
-- [ ] I5. Provasign bridge contract test: a fixture proving a finalized shale
+- [ ] I5. Hosted-notary bridge contract test: a fixture proving a finalized shale
       is ingestible without laptop access (self-containedness check — no
-      Provasign code here, just the contract).
+      server code here, just the contract).
 - [ ] I6. (Stretch) DSSE/Sigstore envelope as an *external wrapper* command for
-      teams that want Rekor logging without Provasign.
+      teams that want Rekor logging without a hosted service.
 
 **MVP 3 acceptance:** conformance demo passes on fixtures; fallback path never
 degrades MVP 1 behavior; strict mode is opt-in, default unchanged (advisory).
@@ -207,7 +207,7 @@ degrades MVP 1 behavior; strict mode is opt-in, default unchanged (advisory).
 |---|---|---|
 | MVP 1 | Activation + growth loop first; everything else is moot without installs | 3–4 |
 | MVP 2 | Hook-verified depth across agents (semantic tier is already universal from MVP 1) is the defensible position vs. GitHub's Copilot-only tracing; spec makes it a standard, not a tool | 3–4 |
-| MVP 3 | Conformance is only credible on top of real capture coverage; it's also the Provasign upsell hook | 4–6 |
+| MVP 3 | Conformance is only credible on top of real capture coverage; it's also the hosted-tier on-ramp | 4–6 |
 
 ## Standing risks the implementer must watch
 
@@ -220,8 +220,8 @@ degrades MVP 1 behavior; strict mode is opt-in, default unchanged (advisory).
    (top-level instruction file, marker-fenced), the one-line ack keeping the
    ceremony cheap, and the card making absence explicit ("no intent declared")
    so non-compliance is visible, not silent. Measure compliance rate in
-   dogfooding before launch; Provasign's production experience with the same
-   pattern is the existence proof.
+   dogfooding before launch; production experience with the same pattern in
+   an earlier internal system is the existence proof.
 3. **Evidence-commit allergy** (teams disliking `chore(shale)` commits):
    measured by feedback; the answer is MVP 3's notes mode — do not redesign
    MVP 1 around it preemptively (ADR D3).
@@ -229,12 +229,12 @@ degrades MVP 1 behavior; strict mode is opt-in, default unchanged (advisory).
    exists; never weaken redaction for card prettiness.
 5. **GitHub ships cross-agent tracing natively**: the counter is spec
    neutrality (works on GitLab/Gitea later, works for *local* agents, feeds
-   Provasign). If this happens, accelerate G1 and G5 (non-GitHub targets).
+   future hosted tooling). If this happens, accelerate G1 and G5 (non-GitHub targets).
 6. **`pull_request_target` footguns**: any future contributor adding an
    `actions/checkout` of the PR head to the workflow reintroduces the classic
    privilege-escalation hole. The action README must carry a loud warning, and
    `shale doctor` should flag a checkout step in `.github/workflows/shale.yml`.
 7. **Shale forgery objections from security reviewers**: point to the threat
    model (architecture §5.0) — v1 is tamper-evident by design, fabrication
-   resistance is the Provasign notary tier. Don't ship half a signing scheme
+   resistance is a future hosted notary tier. Don't ship half a signing scheme
    in this repo to appease the objection.

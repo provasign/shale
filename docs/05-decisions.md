@@ -9,7 +9,7 @@ silently diverging.
 The CLI runs on every developer laptop; many enterprise OSS policies blanket-ban
 AGPL, and AGPL's network trigger protects nothing here (the value is the
 workflow + spec, not a hostable server). Adoption *is* the moat — the spec only
-wins if other tools can emit it freely. Commercial capture lives in Provasign
+wins if other tools can emit it freely. Commercial capture is future hosted-tier work
 (server-side signing, policy, retention), not in this repo's license.
 
 ## D2 — Language: Go everywhere; composite (not TypeScript) Action
@@ -24,11 +24,11 @@ download-and-exec glue; a TypeScript action would add a second toolchain and a
 
 Considered: (a) committed files, (b) git notes, (c) upload to a server.
 
-- (c) violates the zero-server promise — rejected for v1 (it's the Provasign tier).
+- (c) violates the zero-server promise — rejected for v1 (it's a future hosted tier).
 - (b) git notes don't alter SHAs (nice) but: not pushed/fetched by default,
   invisible in every git UI, bind to SHAs so rebase/squash orphans them, and
   fork contributors need extra ref permissions. This was a real source of
-  complexity in the Provasign ADR-006 design.
+  complexity in the the predecessor system's ADR-006 design.
 - (a) committed files survive rebase/squash *with* the code, are visible and
   diffable in the PR itself (the evidence is reviewable!), work from forks with
   zero setup, and work on any git host. Cost: a `chore(shale)` commit on push
@@ -51,7 +51,7 @@ Considered: (a) committed files, (b) git notes, (c) upload to a server.
 deterministically on file edits and commands — but hooks cannot know *why*
 the agent is making changes or whether the work is semantically complete.
 Inferring intent from the first user prompt produces garbage (exploratory
-questions, "continue", "why is this failing?"). Provasign proved this right:
+questions, "continue", "why is this failing?"). an earlier internal system we built proved this:
 the agent declares intent before editing and closes it after finishing — that
 timing and that authorship (agent's understood interpretation, not raw user
 text) is what makes the intent meaningful.
@@ -80,15 +80,15 @@ text) is what makes the intent meaningful.
 
 - **Token pinning.** MCP tool calls and results pin to the agent's context
   window for the whole session; CLI output flows through the normal
-  compression path and is evictable. Provasign measured MCP integration at
+  compression path and is evictable. an earlier internal system we built measured MCP integration at
   33% of session tokens in real sessions and reversed course to CLI-first
-  (Provasign ADR-006, "Agent integration — CLI over MCP"). Shale's payloads
+  (the predecessor system's ADR-006, "Agent integration — CLI over MCP"). Shale's payloads
   are small either way, but the asymmetry is structural and choosing right
   costs nothing.
 - **Registration burden.** MCP needs a per-agent server entry — `.mcp.json`,
   `.cursor/mcp.json`, `.vscode/mcp.json`, `~/.codex/config.toml`, Windsurf,
   Zed, Continue, Kiro — across JSON and TOML formats with known idempotency
-  traps (Provasign carries ~400 lines of config-merge code plus a bug history
+  traps (the predecessor system carries ~400 lines of config-merge code plus a bug history
   for exactly this). The CLI needs only PATH.
 - **Approval friction.** Claude Code asks the user to approve new MCP servers
   — a human step injected into the 5-minute flow. A brew-installed binary has
@@ -150,7 +150,7 @@ driver interface (`github` MVP 1, `gitlab` MVP 2, `bitbucket` backlog). The
 Action exists for OSS reach and marketplace distribution only. Any feature that
 works *only* inside Actions is rejected.
 
-## D11 — Threat model: tamper-evident in v1, tamper-proof is the Provasign tier
+## D11 — Threat model: tamper-evident in v1, tamper-proof is a future hosted tier
 
 Committed shale can be hand-edited later; we say so openly instead of
 pretending otherwise (full table: architecture §5.0). v1 detections — transcript
@@ -158,7 +158,7 @@ hash verification and "shale modified after its introducing commit" — surface
 as ⚠️ card flags, never silently. Wholesale fabrication by a malicious author is
 explicitly out of scope for v1: defeating it requires an independent witness
 (Sigstore/Rekor co-signing, server-side verification), which is precisely the
-Provasign enterprise tier. This boundary is both the honest engineering line
+future hosted enterprise tier. This boundary is both the honest engineering line
 and the commercial upgrade reason — do not ship half a signing scheme in this
 repo to blur it.
 

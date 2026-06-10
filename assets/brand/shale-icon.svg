@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Shale logo">
+  <!-- Shale mark: four strata, laid down like session evidence.
+       Top layer carries the accent — the freshest layer of the record. -->
+  <rect x="6"  y="8"  width="40" height="9" rx="3" fill="#38d996"/>
+  <rect x="18" y="21" width="40" height="9" rx="3" fill="#64748b"/>
+  <rect x="6"  y="34" width="40" height="9" rx="3" fill="#475569"/>
+  <rect x="18" y="47" width="40" height="9" rx="3" fill="#334155"/>
+</svg>

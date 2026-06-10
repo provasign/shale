@@ -212,7 +212,7 @@ this matters because most enterprises run Jenkins or GitLab CI, not Actions.
 |---|---|---|
 | **MVP 1** | `shale intent`/`shale done` via steering prompt (**every agent**, incl. Copilot) + Claude Code hook capture + git-fallback file evidence + `.shale/` + Action card | The 5-minute promise, the growth loop, universal coverage day one |
 | **MVP 2** | Cursor/Codex/Gemini hook adapters (verified file evidence), GitLab driver + Jenkins recipe, recorded checks, spec v1 published, `shale verify` | Cross-agent **and cross-CI** depth (the moat vs GitHub) |
-| **MVP 3** | Grove-backed intent↔diff conformance, sensitive-path policy file, git-notes storage mode, `shale gc`, Provasign bridge | The killer feature; the enterprise on-ramp |
+| **MVP 3** | Grove-backed intent↔diff conformance, sensitive-path policy file, git-notes storage mode, `shale gc`, hosted-notary bridge | The killer feature; the enterprise on-ramp |
 
 ## 5. Success metrics
 
@@ -229,4 +229,4 @@ this matters because most enterprises run Jenkins or GitLab CI, not Actions.
 - LLM-generated review commentary
 - Line-level authorship attribution (Git AI does this; we link at file/session granularity)
 - Blocking merges, branch protection, server-side policy
-- Any hosted backend (that's Provasign's tier)
+- Any hosted backend (that is future hosted-tier work)

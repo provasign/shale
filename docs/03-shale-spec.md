@@ -1,14 +1,14 @@
 # Shale format — spec v0 (draft)
 
 The shale file is the product's contract: agents/adapters write it, the
-Action renders it, Provasign (later) ingests it, and third parties are invited
-to implement it. It must be readable by a human in a code review **and**
+Action renders it, future hosted tooling (later) ingests it, and third parties
+are invited to implement it. It must be readable by a human in a code review **and**
 strictly parseable by machine. Spec v1 (MVP 2) will be published with a JSON
 Schema in `spec/` and a conformance test suite; v0 below is the build target
 for MVP 1.
 
 Media type: `application/vnd.shale+yaml;v=0` ·
-Predicate URI (for future in-toto wrapping by Provasign):
+Predicate URI (for future in-toto wrapping by a hosted notary):
 `https://provasign.dev/shale/v0`
 
 ## 1. File placement
@@ -123,7 +123,7 @@ redactions: 2                      # count of redaction hits (never the content)
 6. **Hashes prove, text persuades.** `title_sha256` + `body_sha256` +
    `transcript.sha256` let anyone detect post-hoc edits without any server
    or signature. Signatures (DSSE/Sigstore) are an enclosing layer added by
-   Provasign-tier tooling — the shale body stays unsigned and stable.
+   hosted-tier tooling — the shale body stays unsigned and stable.
 7. **Renderer contract:** the card must be derivable from shale files + the
    PR diff alone. Any field that would require network access to interpret is
    spec-invalid.
@@ -144,5 +144,5 @@ redactions: 2                      # count of redaction hits (never the content)
 - **v1 (MVP 2):** published JSON Schema in `spec/shale.v1.schema.json`;
   `shale verify`; conformance fixtures; CHANGELOG discipline; announce as an
   open spec others can emit (this is the cross-agent neutrality play).
-- **v2 (with Provasign bridge):** stable in-toto predicate wrapping; explicit
+- **v2 (with the hosted-notary bridge):** stable in-toto predicate wrapping; explicit
   `checks[]` result objects contributed by scanner integrations.

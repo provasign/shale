@@ -58,7 +58,7 @@ workaround (ADR D10).
 
 - **Go 1.26+** for the entire CLI and the Action's logic. One static binary,
   zero runtime deps, cross-compiles to mac/linux/windows · amd64/arm64, matches
-  the Provasign-family toolchain, and lets MVP 3 embed `grove/pkg/grove`
+  the same toolchain family (Grove, Prism), and lets MVP 3 embed `grove/pkg/grove`
   in-process. Module: `github.com/provasign/shale` (joins the root `go.work`).
 - **The GitHub Action is a composite action** (`action/action.yml`): a few
   lines of shell that download the checksum-pinned binary for the runner's
@@ -162,14 +162,14 @@ Everything else (file tracking, command recording) is automatic.
 by following these instructions — the user does nothing. Intent is the agent's
 understood interpretation of the task, written at the moment of maximum
 clarity (after reading the request, before touching files). This is the
-Provasign lesson applied correctly: the agent writes the intent, not the user,
+predecessor system's lesson applied correctly: the agent writes the intent, not the user,
 and it does so at precisely the right moment.
 
 **Why CLI and not MCP tools (ADR D4):** MCP tool calls and their results pin
 to the agent's context window for the whole session; CLI output goes through
-the normal compression path and is evictable. Provasign measured its MCP
+the normal compression path and is evictable. an earlier internal system we built measured its MCP
 integration at 33% of session tokens in production and moved its agent
-workflow to CLI-first (Provasign ADR-006, "Agent integration — CLI over
+workflow to CLI-first (the predecessor system's ADR-006, "Agent integration — CLI over
 MCP"). Just as important: MCP needs a per-agent server registration across
 8+ config formats plus a user approval step in Claude Code, while a CLI on
 PATH needs nothing — and *every* agent can run a shell command, which is what
@@ -206,7 +206,7 @@ enter the agent's context.
 - Transcript hash (`sha256` of the redacted transcript file) is embedded in the
   shale YAML → the card can prove the transcript wasn't edited after the fact.
   This is the tamper-evidence story for v1; Sigstore co-signing is the
-  Provasign-tier upgrade, not duplicated here.
+  hosted-tier upgrade, not duplicated here.
 
 ### 3.4 `internal/render` + `internal/forge` — the card
 
@@ -325,7 +325,7 @@ sh 'shale render --pr ${env.CHANGE_ID}'   // CHANGE_ID set by the GitHub/GitLab 
    fixtures.)
 5. Contributor without Shale → standard "no shale" nudge. Identical UX for
    fork and same-repo PRs — this zero-config fork story is a deliberate
-   simplification vs. the Provasign server model and a core selling point.
+   simplification vs. a server-backed model and a core selling point.
 
 On GitLab, the equivalent is an MR pipeline job posting an MR note via the
 `gitlab` driver; fork MR token rules differ and are handled inside the driver
@@ -348,7 +348,7 @@ On GitLab, the equivalent is an MR pipeline job posting an MR note via the
   in the diff with no session evidence is flagged; a session claim for a file
   not in the diff is simply dropped from the card).
 - **Fork PRs:** committed files work from forks with zero extra setup — this is
-  the single biggest simplification vs. the Provasign server model. Full
+  the single biggest simplification vs. a server-backed model. Full
   mechanics, including the `pull_request_target` / no-checkout token model: §3.7.
 - **Monorepos:** shale files live at repo root; `file_touch` paths are repo-relative.
   Per-directory scoping is a non-goal until users ask.
@@ -367,7 +367,7 @@ Committed shale files are **tamper-evident, not tamper-proof**:
 | Transcript edited after finalize | `transcript.sha256` mismatch → ⚠️ flag on the card |
 | Shale YAML hand-edited inside the PR | Detected via `PRCommits`: shale modified after its introducing commit → ⚠️ "shale edited after capture" flag; the edit is also plainly visible in the PR diff (evidence is reviewable — a feature) |
 | Shale edited in a later PR | Append-only rule violation; git history shows it; render flags shale files whose file was modified post-introduction |
-| **Wholesale fabrication** (malicious author crafts fake shale offline) | **Out of scope for v1, explicitly.** Shale's v1 claim is "what the toolchain recorded for an honest-but-busy team," not insider-attack resistance. Defeating fabrication requires an independent witness — Sigstore/Rekor co-signing and server-side verification — which is precisely the Provasign enterprise tier. The docs and the card never overclaim. |
+| **Wholesale fabrication** (malicious author crafts fake shale offline) | **Out of scope for v1, explicitly.** Shale's v1 claim is "what the toolchain recorded for an honest-but-busy team," not insider-attack resistance. Defeating fabrication requires an independent witness — Sigstore/Rekor co-signing and server-side verification — which is precisely a future hosted enterprise tier. The docs and the card never overclaim. |
 
 This tiering is deliberate: it keeps v1 at zero servers while giving the
 enterprise version a real reason to exist.
@@ -388,10 +388,10 @@ enterprise version a real reason to exist.
   artifacts from day one — an evidence tool with a sloppy supply chain is dead
   on arrival with the security persona.
 
-## 6. Bridge to Provasign (design constraint, not v1 work)
+## 6. Bridge to a hosted notary (design constraint, not v1 work)
 
-A future `shale sync` (or Provasign-side importer) uploads finalized shale
-to a Provasign server, which co-signs it (Sigstore/Fulcio), stores it
+A future `shale sync` (or server-side importer) uploads finalized shale
+to a hosted notary, which co-signs it (Sigstore/Fulcio), stores it
 org-wide, and applies policy. Constraint on Shale today: **the shale YAML
 must be self-contained and schema-versioned** so server-side ingestion never
-needs the laptop again. Nothing else about Provasign leaks into this codebase.
+needs the laptop again. Nothing else about that future tier leaks into this codebase.

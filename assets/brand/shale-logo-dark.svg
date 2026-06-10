@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 252 64" role="img" aria-label="Shale">
+  <!-- Lockup for dark backgrounds -->
+  <g>
+    <rect x="6"  y="8"  width="40" height="9" rx="3" fill="#38d996"/>
+    <rect x="18" y="21" width="40" height="9" rx="3" fill="#94a3b8"/>
+    <rect x="6"  y="34" width="40" height="9" rx="3" fill="#64748b"/>
+    <rect x="18" y="47" width="40" height="9" rx="3" fill="#475569"/>
+  </g>
+  <text x="76" y="45" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif"
+        font-size="40" font-weight="750" letter-spacing="-1.5" fill="#e6edf3">shale</text>
+</svg>
