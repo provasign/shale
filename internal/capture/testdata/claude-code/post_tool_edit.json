@@ -1,0 +1,15 @@
+{
+  "session_id": "a1b2c3d4-5678-90ab-cdef-112233445566",
+  "cwd": "/work/my-repo",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Edit",
+  "tool_input": {
+    "file_path": "internal/auth/login.go",
+    "old_string": "x",
+    "new_string": "y"
+  },
+  "tool_response": {
+    "filePath": "internal/auth/login.go",
+    "success": true
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "session_id": "a1b2c3d4-5678-90ab-cdef-112233445566",
+  "cwd": "/work/my-repo",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Write",
+  "tool_input": {
+    "file_path": "internal/auth/ratelimit.go",
+    "content": "package auth"
+  },
+  "tool_response": {
+    "filePath": "internal/auth/ratelimit.go",
+    "success": true
+  }
+}

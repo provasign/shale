@@ -1,0 +1,16 @@
+{
+  "session_id": "a1b2c3d4-5678-90ab-cdef-112233445566",
+  "cwd": "/work/my-repo",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "go test ./internal/auth/...",
+    "description": "Run auth tests"
+  },
+  "tool_response": {
+    "stdout": "ok",
+    "stderr": "",
+    "exit_code": 0,
+    "interrupted": false
+  }
+}

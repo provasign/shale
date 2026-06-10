@@ -1,0 +1,8 @@
+{
+  "session_id": "a1b2c3d4-5678-90ab-cdef-112233445566",
+  "transcript_path": "/Users/dev/.claude/projects/work-my-repo/a1b2c3d4.jsonl",
+  "cwd": "/work/my-repo",
+  "hook_event_name": "SessionStart",
+  "source": "startup",
+  "model": "claude-fable-5"
+}
