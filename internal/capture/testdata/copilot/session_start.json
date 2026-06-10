@@ -1,0 +1,7 @@
+{
+  "sessionId": "copilot-session-001",
+  "cwd": "/work/my-repo",
+  "hookEventName": "sessionStart",
+  "model": "copilot-agent",
+  "fixture_agent_version": "copilot hook schema not publicly discoverable 2026-06; tolerant contract fixture"
+}

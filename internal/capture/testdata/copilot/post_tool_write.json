@@ -1,0 +1,10 @@
+{
+  "sessionId": "copilot-session-001",
+  "cwd": "/work/my-repo",
+  "hookEventName": "postToolUse",
+  "toolName": "Write",
+  "toolInput": {
+    "filePath": "internal/auth/auth_test.go"
+  },
+  "fixture_agent_version": "copilot hook schema not publicly discoverable 2026-06; tolerant contract fixture"
+}
