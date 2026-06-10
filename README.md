@@ -1,75 +1,43 @@
 # Shale
 
-> **Every agent PR comes with shale.**
-> Shale shows reviewers what an AI coding agent was asked to do, what it actually
-> changed, and what checks already ran — rendered as a card on the pull request.
-> Five minutes to set up. Zero servers. Works with every coding agent.
+> **Every agent PR should explain itself.**
+>
+> Shale captures what an AI coding agent was asked to do, what it touched, and
+> what checks it ran, then renders that evidence as a pull-request card.
+> Five minutes to set up. No account. No server. Works across coding agents.
 
-**License: Apache-2.0** (deliberately permissive — adoption is the moat; see
-`docs/05-decisions.md` D1).
+Shale is the primary open-source product in the Provasign org. Prism is the
+secondary tool for graph-ranked agent context. Grove is the standalone graph
+engine for teams that want the code graph directly. The hosted/enterprise
+Provasign product is paused for now; the org name stays because the tools and
+package paths already live here.
+
+**License:** Apache-2.0.
 
 ---
 
-## The problem
+## Why Shale Exists
 
-AI coding agents now produce a large share of PR volume. The reviewer, the
-security engineer, the risk officer, and the product owner all ask the same
-question from different angles:
+AI coding agents are now producing real PR volume. Reviewers still get the same
+old diff, often without the prompt, session trail, or local check history that
+would explain whether the agent did the right thing.
 
-> **"Did the agent do the right thing? What was it asked, what did it touch,
-> and can I trust this diff?"**
+Shale makes that missing evidence travel with the code.
 
-Today the answer is scattered or gone: the prompt died with the agent session,
-the diff is huge, and CI findings arrive after the fact. GitHub is solving this
-*only* for its own Copilot cloud agent (commit → session-log tracing). Local
-agents — Claude Code, Cursor, Codex CLI, Gemini CLI, Windsurf — which produce
-most agent code today, leave no trail.
+It is not a quality gate, LLM reviewer, or hosted attestation service. It is a
+local-first recorder and PR renderer:
 
-## What Shale does
+- **Intent:** what the agent was asked to do.
+- **Evidence:** files seen in the agent session, commands/checks observed, model
+  and token metadata when available.
+- **Gaps:** changed files with no session evidence, sensitive paths, or
+  hook-limited coverage.
+- **Card:** a neutral PR comment/check that reviewers can read before the diff.
 
-1. **Captures intent from the agent itself.** A steering prompt (written by
-   `shale init` into CLAUDE.md / AGENTS.md / .cursorrules /
-   copilot-instructions.md) has the agent declare its intent via
-   `shale intent` before the first edit and report completion via
-   `shale done` — plain CLI calls, no MCP, so it works with **every** agent
-   including Copilot (ADR D4). Agent-native hooks, where available, add
-   verified file-touch and command evidence automatically. `shale init` writes
-   repo-level hook config for Claude Code, Copilot, Cursor, and Codex; those
-   commands are silent no-ops until `shale` is installed and each agent trusts
-   its repo hooks. A git-diff fallback covers every agent when hooks do not
-   fire. The user changes nothing about how they work.
-2. **Makes the evidence travel with the code.** Evidence is written to
-   `.shale/` in the repo (schema-versioned YAML, redacted) and rides along
-   with the normal push. No server in the path.
-3. **Renders a Shale card on the PR.** `shale render` runs in the user's
-   own CI — a one-line GitHub Action for OSS, or the same binary in a
-   Jenkins/GitLab CI stage for enterprises — reads the PR diff and the shale files
-   via the forge API (no code checkout), and posts a card: intent, agent/model,
-   changed files vs. stated intent, locally-recorded check results, and
-   explicit gaps ("2 files changed with no session evidence").
-4. **Stays advisory.** The card never blocks a merge. Strict mode is a later,
-   explicit opt-in. The default posture is fail-open, zero friction.
-
-What Shale deliberately does **not** do:
-
-- It does **not** run quality gates. Scanners (Semgrep, Sonar, gitleaks) already
-  ship MCP servers that agents call in-loop; CI remains authoritative. Shale
-  *records* what ran and what the result was — it is a recorder and renderer,
-  not a gatekeeper.
-- It does **not** review code with an LLM. CodeRabbit/Greptile/Graphite own
-  that space. Shale is the evidence layer those reviews sit on top of.
-- It does **not** require an account, a backend, signing keys, or a GitHub App
-  in v1.
-
-## The one-line goal (hold every decision against this)
-
-> **A stranger with an agent-built branch gets a Shale card on their next PR
-> within 5 minutes of discovering this project, without creating an account or
-> deploying anything.**
+The default posture is advisory and fail-open. A Shale bug must not block your
+agent, push, CI, or merge.
 
 ## Quickstart
-
-Install Shale, then initialize your repo:
 
 ```sh
 brew tap provasign/shale
@@ -79,55 +47,97 @@ shale init
 git add . && git commit -m "chore: enable shale"
 ```
 
+If Homebrew asks you to trust the tap:
+
+```sh
+brew trust --formula provasign/shale/shale
+brew install shale
+```
+
 If Homebrew is not available, download the latest release from
 <https://github.com/provasign/shale/releases/latest> and put the `shale` binary
 on your `PATH`.
 
-If Homebrew asks you to trust the tap, run
-`brew trust --formula provasign/shale/shale`, then retry `brew install shale`.
+## What `shale init` Writes
 
-`shale init` writes the steering prompt, repo-level hook config, `.shale/`, the
-PR workflow, and a local pre-push hook. Repo hooks are guarded: teammates who
-clone the repo before installing Shale see no hook errors. Developers who want
-machine-wide capture can also run `shale init --global`.
+`shale init` wires the repo for the lowest-friction path:
 
-## Relationship to Provasign
+- agent steering instructions in files such as `AGENTS.md`, `CLAUDE.md`,
+  `.cursorrules`, and `.github/copilot-instructions.md`
+- repo-level hook config for agents that support hooks
+- `.shale/` storage for redacted, schema-versioned evidence
+- a GitHub Action that renders the Shale card on pull requests
+- a local pre-push hook that finalizes evidence before push
 
-Shale is the open, lightweight market wedge. Provasign (sibling repo) remains
-the enterprise certification platform (Sigstore notarization, org policy,
-server-side attestation store, regulated-tier re-runs). The bridge is the
-shale format itself: a Provasign server can ingest `.shale/` files and
-upgrade them into signed attestations. Shale feeds Provasign; it does not
-depend on it. Grove (sibling, MIT) is embedded in MVP 3 for intent↔diff
-conformance.
+Repo hooks are guarded. If a teammate has not installed Shale, the generated
+hook command silently no-ops. Developers who want machine-wide capture can run
+`shale init --global`.
 
-## Repository layout (target)
+## How It Works
 
-```
-shale/
-├── cmd/shale/              # CLI entry point (Go, single static binary)
-├── internal/
-│   ├── capture/            # agent hook adapters (claudecode, cursor, codex, generic)
-│   ├── store/              # .shale/ read/write, schema versioning, redaction
-│   ├── render/             # card rendering (markdown) for PR/MR comment
-│   ├── forge/              # forge drivers: github (MVP 1), gitlab (MVP 2)
-│   └── conformance/        # MVP 3: Grove-backed intent↔diff mapping
-├── action/                 # composite GitHub Action (packaging — see ADR D10)
-├── spec/                   # shale format JSON Schema + examples (the open spec)
-├── docs/
-│   ├── 01-product.md       # personas, UX flows, card mockups
-│   ├── 02-architecture.md  # components, data flow, language rationale
-│   ├── 03-shale-spec.md    # evidence format v0
-│   ├── 04-implementation-plan.md  # MVP 1/2/3 task breakdown (start here to build)
-│   ├── 05-decisions.md     # decision records — do not relitigate these
-│   └── 06-agent-hooks.md   # agent hook locations, trust UX, repo/global wiring
-└── AGENTS.md               # instructions for the implementing agent
+```text
+agent receives task
+  -> steering asks the agent to call shale intent
+  -> hooks and CLI calls record session evidence locally
+  -> agent calls shale done
+  -> git push runs shale finalize
+  -> CI runs shale render
+  -> PR gets a Shale card
 ```
 
-## Reading order for the implementing agent
+The evidence is committed under `.shale/` after redaction, so fork PRs and
+same-repo PRs work the same way. The GitHub Action uses the repo's
+`GITHUB_TOKEN`; there is no signup, token paste, GitHub App, or server.
 
-1. `AGENTS.md` — ground rules
-2. `docs/04-implementation-plan.md` — what to build, in order, with acceptance criteria
-3. `docs/02-architecture.md` + `docs/03-shale-spec.md` — how
-4. `docs/01-product.md` — why / UX north star
-5. `docs/05-decisions.md` — settled questions
+## The PR Card
+
+A Shale card answers the reviewer's first questions:
+
+- What was the agent asked to do?
+- Which agent/model/session produced this change?
+- Which changed files were seen in session evidence?
+- Which files have no evidence?
+- What local checks did the agent run?
+- Are there sensitive path or tamper warnings?
+
+If a PR has no Shale evidence, Shale still renders a clear no-evidence card
+instead of silently disappearing.
+
+## Project Lineup
+
+| Project | Role | Status |
+|---|---|---|
+| **Shale** | Primary product: agent PR evidence and intent cards | Active, Apache-2.0 |
+| **Prism** | Secondary product: graph-ranked context delivery for agents | Active, MIT |
+| **Grove** | Code graph engine for direct graph/index use and embedded tools | Active, MIT |
+| Provasign | Hosted/enterprise certification product | Paused/hidden |
+
+Shale may use Prism or Grove-backed conformance features over time, but the
+core product remains useful without a hosted backend.
+
+## Repository Layout
+
+```text
+cmd/shale/              CLI entry point
+internal/capture/       agent hook payload parsers
+internal/store/         .shale read/write, schema versioning, redaction
+internal/render/        PR card rendering
+internal/forge/         forge API drivers
+action/                 composite GitHub Action
+docs/                   product, architecture, spec, implementation plan
+```
+
+## For Implementing Agents
+
+Read in this order:
+
+1. `AGENTS.md`
+2. `docs/04-implementation-plan.md`
+3. `docs/02-architecture.md`
+4. `docs/03-shale-spec.md`
+5. `docs/01-product.md`
+6. `docs/05-decisions.md`
+
+The short version: preserve the 5-minute setup promise, fail open everywhere,
+redact before persistence, keep `.shale/` append-only, and prefer real hook
+fixtures over mocks.
