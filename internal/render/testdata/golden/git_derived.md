@@ -13,7 +13,7 @@ claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 > Redis-backed rate limiter implemented. In-memory fallback added.
 
 ### Changed files (5) — 1 with evidence · 4 untracked
-| File | Evidence | Notes |
+| File | Session ID | Notes |
 |---|---|---|
 | `internal/auth/ratelimit.go` | — | **sensitive path: auth/crypto path** |
 | `internal/auth/ratelimit_test.go` | — | **sensitive path: auth/crypto path** |

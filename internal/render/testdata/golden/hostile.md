@@ -13,7 +13,7 @@ claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 > done &amp; dusted &lt;iframe src=evil&gt;
 
 ### Changed files (5) — 2 with evidence · 3 untracked
-| File | Evidence | Notes |
+| File | Session ID | Notes |
 |---|---|---|
 | `internal/auth/ratelimit.go` | — | **sensitive path: auth/crypto path** |
 | `internal/auth/ratelimit_test.go` | ✅ evil123456 | **sensitive path: auth/crypto path** |

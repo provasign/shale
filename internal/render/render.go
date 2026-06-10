@@ -249,7 +249,7 @@ func writeFiles(b *strings.Builder, in Input) {
 	writeRow := func(r row) {
 		fmt.Fprintf(b, "| %s | %s | %s |\n", code(Sanitize(r.path)), r.badge, r.notes)
 	}
-	header := "| File | Evidence | Notes |\n|---|---|---|\n"
+	header := "| File | Session ID | Notes |\n|---|---|---|\n"
 
 	if len(rows) <= maxFileRows {
 		b.WriteString(header)

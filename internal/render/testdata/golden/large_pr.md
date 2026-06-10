@@ -13,7 +13,7 @@ claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 > Redis-backed rate limiter implemented. In-memory fallback added.
 
 ### Changed files (201) — 0 with evidence · 201 untracked
-| File | Evidence | Notes |
+| File | Session ID | Notes |
 |---|---|---|
 | `pkg/gen/file_000.go` | — |  |
 | `pkg/gen/file_001.go` | — |  |
@@ -226,7 +226,7 @@ Files grouped by directory:
 
 <details><summary>Full file list</summary>
 
-| File | Evidence | Notes |
+| File | Session ID | Notes |
 |---|---|---|
 | `pkg/gen/file_000.go` | — |  |
 | `pkg/gen/file_001.go` | — |  |
