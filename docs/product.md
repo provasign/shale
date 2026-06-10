@@ -4,7 +4,7 @@ The single reference for what Shale does, how it's built, and why it's built
 that way. The evidence file format lives separately in
 [shale-spec.md](shale-spec.md) — that's the contract third parties implement.
 User-facing walkthroughs: [getting-started.md](getting-started.md) ·
-[troubleshooting.md](troubleshooting.md).
+[ci-integrations.md](ci-integrations.md) · [troubleshooting.md](troubleshooting.md).
 
 ---
 

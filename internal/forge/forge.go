@@ -49,9 +49,10 @@ type Config struct {
 // GitHub Actions auto-detection.
 func FromEnv() Config {
 	cfg := Config{
-		Forge: getenv("SHALE_FORGE", "github"),
-		Token: os.Getenv("SHALE_TOKEN"),
-		Repo:  os.Getenv("SHALE_REPO"),
+		Forge:  getenv("SHALE_FORGE", "github"),
+		Token:  os.Getenv("SHALE_TOKEN"),
+		Repo:   os.Getenv("SHALE_REPO"),
+		APIURL: os.Getenv("SHALE_API_URL"),
 	}
 	if cfg.Token == "" {
 		cfg.Token = os.Getenv("GITHUB_TOKEN")

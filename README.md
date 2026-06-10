@@ -55,7 +55,8 @@ That's it. The next agent-authored PR carries a card. No Homebrew? Grab the
 latest [release](https://github.com/provasign/shale/releases/latest) and put
 the `shale` binary on your `PATH`.
 
-→ **[Getting started](docs/getting-started.md)** — full walkthrough
+→ **[Getting started](docs/getting-started.md)** — full walkthrough, including branch protection and flow diagram
+→ **[CI integrations](docs/ci-integrations.md)** — Jenkins, CircleCI, GitHub Enterprise Server, and the env contract
 → **[Troubleshooting](docs/troubleshooting.md)** — when something looks off
 → **[Live demo PRs](https://github.com/provasign/shale-test-bed/pulls?q=is%3Apr)** — real cards on real pull requests
 

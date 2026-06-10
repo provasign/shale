@@ -3,6 +3,57 @@
 From zero to a PR card in about five minutes. No account, no server — just a
 binary, your repo, and your existing CI.
 
+---
+
+## How the pieces connect
+
+Before the numbered steps, here is what Shale actually does end to end:
+
+```
+LAPTOP (gitignored)                         GITHUB / CI
+─────────────────────────────────────────   ──────────────────────────────────
+Agent reads CLAUDE.md / AGENTS.md
+  → sees steering block
+  → calls: shale intent "Add rate limiting…"
+           writes .shale/local/<session>.jsonl
+
+Agent edits files
+  → hooks stream each touch into .jsonl
+
+Agent calls: shale done --note "…"
+  → appends completion event
+
+git push
+  → pre-push hook fires:
+     shale finalize --auto-commit
+     reads .shale/local/<session>.jsonl
+     redacts → folds → writes .shale/<session>.yaml
+     commits the evidence file
+     push continues (with evidence commit)
+                                              PR opened / updated
+                                                → pull_request_target fires
+                                                  (runs workflow from default branch)
+
+                                              shale render
+                                                → fetches PR diff via API
+                                                → fetches .shale/*.yaml via API
+                                                  (NO code checkout — ever)
+                                                → renders card markdown
+                                                → posts comment to PR
+                                                → posts neutral check run
+```
+
+Key points:
+- **Everything on the left stays on the laptop** — events are in gitignored
+  `.shale/local/`; raw prompts are never included in committed evidence.
+- **The evidence commit rides with your push** — `shale finalize` commits it
+  during the pre-push hook, so you push once and the evidence lands with the code.
+- **The renderer never touches your code** — it reads the diff and `.shale/`
+  files through the GitHub API. No checkout means no privilege escalation on
+  `pull_request_target`.
+
+---
+
 ## 1. Install the CLI
 
 **Homebrew (macOS / Linux):**
@@ -26,6 +77,8 @@ Confirm:
 ```sh
 shale version
 ```
+
+---
 
 ## 2. Initialize your repo
 
@@ -53,16 +106,65 @@ What each piece does:
 | Steering prompt (`CLAUDE.md`, `AGENTS.md`, …) | Tells your agent to declare `shale intent` before editing and `shale done` after — the semantic evidence tier, works with *any* agent |
 | Repo capture hooks | Stream file touches, commands, and prompts into the session record for agents with hook support. **Self-guarding**: teammates without Shale installed see zero errors |
 | `.shale/` | Committed, schema-versioned, redacted evidence. `local/` working state is gitignored |
-| Workflow file | Renders the card on every PR via API — it never checks out PR code |
+| `.github/workflows/shale.yml` | Renders the card on every PR via the GitHub API — never checks out PR code |
 | Pre-push hook | Finalizes any open session and commits the evidence before push. Fail-open: it can never block your push |
 
-Commit and push:
+### The card-rendering workflow
 
-```sh
-git add . && git commit -m "chore: enable shale" && git push
+The workflow `shale init` writes runs on `pull_request_target` — which means
+it **always runs from the default branch**, not from the PR branch. This is
+intentional: it gives the renderer a write-capable `GITHUB_TOKEN` that works
+even for fork PRs, without the privilege-escalation risk of checking out
+untrusted PR code.
+
+What this means for you:
+
+> **The workflow must be merged to your default branch before any PR will get
+> a card.** Until that merge happens, the workflow simply doesn't exist from
+> GitHub's perspective.
+
+The workflow requests exactly the permissions it needs — no repository-wide
+secrets are required:
+
+```yaml
+permissions:
+  contents: read        # fetch .shale/*.yaml files via API
+  pull-requests: write  # post the card comment
+  checks: write         # post the neutral check run
 ```
 
-Done. One person runs `init`; everyone else gets the wiring on `git clone`.
+These explicit permissions work even if your organisation's default is
+`GITHUB_TOKEN: read-only`.
+
+### Repos with branch protection
+
+If your default branch (`main`, `master`) requires pull requests before
+merging, follow this bootstrap sequence:
+
+```sh
+# 1. Create a branch for the Shale setup commit
+git checkout -b chore/enable-shale
+
+# 2. Run init and commit
+shale init
+git add .
+git commit -m "chore: enable shale"
+
+# 3. Push and open a PR
+git push -u origin chore/enable-shale
+# → open a PR against main in the GitHub UI
+```
+
+Open the PR normally and get it reviewed. **This first PR will not have a
+Shale card** — that's expected, because the workflow doesn't exist on `main`
+yet. That is the bootstrap PR.
+
+Once it merges, every subsequent PR will get a card. There is no second
+bootstrap step.
+
+> **If your org requires Actions approval for new workflows:** an org admin
+> needs to approve the `shale.yml` workflow once after it lands on `main`.
+> This is a one-time step done in your org's Actions settings.
 
 ### Options
 
@@ -72,24 +174,33 @@ shale init --global                            # also wire ~/.claude, ~/.cursor,
 shale init --hooks-only                        # just the pre-push hook (fork contributors)
 ```
 
+---
+
 ## 3. Run an agent session
 
 Work with your agent as usual. Behind the scenes:
 
 1. The steering prompt makes the agent declare its goal **before editing**:
-   `shale intent "Add rate limiting to the login endpoint" --body "Token bucket, 10 req/min…"`
+   ```
+   shale intent "Add rate limiting to the login endpoint" --body "Token bucket, 10 req/min…"
+   ```
 2. Hooks (where the agent has them) record every file touch, command, and
    prompt into gitignored `.shale/local/` — laptop-only working state.
 3. When the work is done, the agent reports:
-   `shale done --note "…" --model … --tokens-in … --tokens-out …`
+   ```
+   shale done --note "…" --model … --tokens-in … --tokens-out …
+   ```
 4. `git push` triggers the pre-push hook → `shale finalize --auto-commit`
    folds the session into `.shale/<session>.yaml`, commits it, and lets the
    push through. Raw prompt text is **not** included — see
    [privacy](#what-the-evidence-looks-like) below.
 
-> **Note:** the finalize commit is created during the push, so it stays local
-> until the *next* push. Push once more (or amend your workflow to push after
-> finalize) and the evidence lands with the PR.
+> **Note:** the finalize commit is created during the push. If you open a PR
+> immediately after the first push, the evidence is already there. If you push
+> and then amend or force-push, finalize is idempotent — push once more and
+> the evidence lands correctly.
+
+---
 
 ## 4. Open a PR and read the card
 
@@ -103,6 +214,11 @@ The card is **advisory**: the check is always neutral/success, never failing.
 A PR with no evidence at all gets an explicit "No shale for this PR" nudge —
 absence is visible, not silent.
 
+**Not using GitHub Actions?** See [CI integrations](ci-integrations.md) for
+Jenkins, CircleCI, GitLab CI, and generic pipelines.
+
+---
+
 ## 5. Verify your setup anytime
 
 ```sh
@@ -115,6 +231,8 @@ card locally without opening a PR:
 ```sh
 shale render --local
 ```
+
+---
 
 ## What the evidence looks like
 
@@ -137,8 +255,11 @@ layer is proven against free-form human text and the regulatory questions
 around persisting raw prompts are settled. Committed evidence carries only a
 prompt count and an intent integrity hash.
 
+---
+
 ## Next steps
 
+- [CI integrations](ci-integrations.md) — Jenkins, CircleCI, GitLab CI, GitHub Enterprise Server
 - [Troubleshooting](troubleshooting.md) — hooks not firing, card not updating, Windows notes
-- [Product, architecture & design](product.md) — how capture works per agent, the card, and the design decisions behind them
+- [Product, architecture & design](product.md) — how capture works per agent, the card, and the design decisions
 - [Shale file spec](shale-spec.md) — the evidence format, for tool builders

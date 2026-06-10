@@ -91,14 +91,21 @@ data loss. Active session events live in `.shale/local/`, archives in
 
 ### No card appears on the PR
 
-1. The workflow must exist on the **default branch** — `pull_request_target`
-   runs the workflow from there, not from the PR branch. Merge the
-   `shale init` commit first.
+1. **The workflow must exist on the default branch.** `pull_request_target`
+   runs the workflow from the default branch, not the PR branch. If you just
+   ran `shale init` and opened a PR without merging the init commit first,
+   the workflow doesn't exist yet. Merge the init commit (open a
+   `chore/enable-shale` PR, get it merged), then the next PR will have a
+   card. See [getting-started.md §2](getting-started.md) for the branch
+   protection bootstrap sequence.
 2. Check the run: repo → Actions → `shale`. A 404 downloading the binary
    means the pinned version was yanked — bump `version:` in the workflow or
    take the action default.
 3. The workflow needs `pull-requests: write` and `checks: write` permissions
-   (the `shale init` template sets these).
+   (the `shale init` template sets these explicitly — they work even if
+   the org default is read-only).
+4. Not using GitHub Actions? See [ci-integrations.md](ci-integrations.md)
+   for Jenkins, CircleCI, and generic pipeline setup.
 
 ### The card didn't update after I changed something
 
@@ -141,6 +148,9 @@ re-finalizing the evidence clears it.
   `.gitattributes` handles it, but check `core.autocrlf` if you see diff noise.
 
 ## Still stuck?
+
+- [CI integrations](ci-integrations.md) for Jenkins, CircleCI, GHES, and generic pipelines
+- [Getting started](getting-started.md) for the complete flow and branch protection bootstrap
 
 Open an issue with the output of `shale doctor` and `shale version`:
 <https://github.com/provasign/shale/issues>. Nothing in either output contains
