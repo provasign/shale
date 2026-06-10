@@ -1,7 +1,7 @@
 // Package fold implements `shale finalize`: the mechanical safety net that
 // folds session JSONL event logs into finalized shale YAML files, applying
-// redaction, hashing, cost computation, and the git-diff fallback for
-// sessions captured without hook adapters (ADR D4 tier 3).
+// redaction, hashing, cost computation, and the git-diff fallback for paths
+// not captured by hook adapters (ADR D4 tier 3).
 package fold
 
 import (
@@ -219,10 +219,14 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 		s.Files = append(s.Files, *touches[p])
 	}
 
-	// Tier 3 fallback (ADR D4): no hook adapter ran, but the agent declared
-	// intent/done — derive the file list from git over the session window.
-	if len(s.Files) == 0 && (s.Intent != nil || s.Completion != nil) {
+	// Tier 3 fallback (ADR D4): if the agent declared intent/done, derive
+	// missing paths from git over the session window. Hook evidence wins for
+	// paths it saw; git fills only the gaps.
+	if s.Intent != nil || s.Completion != nil {
 		for _, p := range gitx.FilesChangedSince(opts.RepoRoot, s.CreatedAt) {
+			if touches[p] != nil {
+				continue
+			}
 			s.Files = append(s.Files, store.FileTouch{
 				Path: p, Ops: []string{"edit"}, Via: store.ViaGit,
 			})

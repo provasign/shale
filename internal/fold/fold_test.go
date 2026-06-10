@@ -172,6 +172,56 @@ func TestRunGitFallbackWhenNoHooks(t *testing.T) {
 	}
 }
 
+func TestRunGitFallbackFillsMissingHookPaths(t *testing.T) {
+	root := initRepo(t)
+	sessionStart := time.Now().UTC().Add(-time.Minute)
+	for _, ev := range []store.Event{
+		{Kind: store.KindIntent, At: sessionStart, Title: "Update login behavior"},
+		{Kind: store.KindFileTouch, At: sessionStart.Add(time.Second), Path: "internal/auth/auth.go", Op: "edit"},
+		{Kind: store.KindCompletion, At: sessionStart.Add(30 * time.Second), Note: "updated"},
+	} {
+		if err := store.AppendEvent(root, "SESSMIXED01", ev); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := os.MkdirAll(filepath.Join(root, "internal/auth"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "internal/auth/auth.go"), []byte("package auth"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "main.go"), []byte("package main"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, args := range [][]string{
+		{"add", "--", "internal/auth/auth.go", "main.go"},
+		{"commit", "-m", "update login behavior"},
+	} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = root
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	if _, err := Run(Options{RepoRoot: root, Now: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	s, err := store.Load(filepath.Join(root, ".shale", "SESSMIXED01.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(s.Files) != 2 {
+		t.Fatalf("files = %+v", s.Files)
+	}
+	if s.Files[0].Path != "internal/auth/auth.go" || s.Files[0].Via != store.ViaHook {
+		t.Fatalf("hook file = %+v", s.Files[0])
+	}
+	if s.Files[1].Path != "main.go" || s.Files[1].Via != store.ViaGit {
+		t.Fatalf("git fallback file = %+v", s.Files[1])
+	}
+}
+
 func TestRunHashOnlyPrivacy(t *testing.T) {
 	root := initRepo(t)
 	seedFullSession(t, root, "SESSHASH01")
