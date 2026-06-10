@@ -378,7 +378,8 @@ as the fallback. `SteeringBlock` says:
 ```
 If `shale` is not on your PATH, do not try to install it yourself. Tell the
 user: "Shale CLI is not installed. Install it with:
-  brew install provasign/shale/shale
+  brew tap provasign/shale
+  brew install shale
 or download the latest release from https://github.com/provasign/shale/releases/latest
 and put the shale binary on your PATH." Then continue without it.
 ```
@@ -400,7 +401,7 @@ Two deliberate choices:
   echo …` means a missing binary at push time skips finalize and lets the push
   through (`initx/hooks.go`);
 - the **PR card nudge** is the discovery surface — a PR with no evidence renders
-  "No shale for this PR … `brew install provasign/shale/shale && shale init`"
+  "No shale for this PR … `brew tap provasign/shale && brew install shale && shale init`"
   (`render.Nudge`), so anyone who slips through every other layer still sees
   exactly what to do, on the PR itself.
 
@@ -422,9 +423,8 @@ The public tap repo is **`provasign/homebrew-shale`** (Homebrew requires the
 `homebrew-` prefix). Users install with:
 
 ```sh
-brew install provasign/shale/shale
-# or equivalently:
-brew tap provasign/shale && brew install shale
+brew tap provasign/shale
+brew install shale
 ```
 
 ### 5.2 Formula file — `Formula/shale.rb`

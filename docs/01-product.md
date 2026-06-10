@@ -37,7 +37,8 @@ is MVP 2.
 ### 3.1 Setup — the 5-minute promise (this flow is the product; protect it)
 
 ```
-$ brew install provasign/shale/shale
+$ brew tap provasign/shale
+$ brew install shale
 $ cd my-repo
 $ shale init
   ✓ Steering prompt added      (CLAUDE.md, AGENTS.md, .cursorrules,
@@ -160,9 +161,9 @@ A contributor without Shale opens a PR on a repo that has the Action:
 ```markdown
 ## 🧾 No shale for this PR
 This repo renders agent evidence on PRs. No agent session evidence was found
-for these commits. If you used an AI agent: `brew install provasign/shale/shale
-&& shale init` (5 minutes, no account). If this was hand-written, ignore this —
-humans don't need shale. 🙂
+for these commits. If you used an AI agent: `brew tap provasign/shale && brew install shale && shale init`
+(5 minutes, no account). If this was hand-written, ignore this — humans don't
+need shale. 🙂
 ```
 
 One comment per PR, never repeated, never failing the build. This message is

@@ -72,7 +72,8 @@ What Shale deliberately does **not** do:
 Install Shale, then initialize your repo:
 
 ```sh
-brew install provasign/shale/shale
+brew tap provasign/shale
+brew install shale
 cd your-repo
 shale init
 git add . && git commit -m "chore: enable shale"
