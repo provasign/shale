@@ -252,6 +252,15 @@ func (g *GitHub) SetStatus(ctx context.Context, headSHA, conclusion, title, summ
 	return err
 }
 
+func (g *GitHub) BlobBase(head string) string {
+	base := "https://github.com"
+	if g.apiURL != "https://api.github.com" {
+		// GHES: derive UI base from API URL (https://ghes.example.com/api/v3 → https://ghes.example.com)
+		base = strings.TrimSuffix(g.apiURL, "/api/v3")
+	}
+	return base + "/" + g.repo + "/blob/" + head
+}
+
 func truncate(s string, n int) string {
 	if len(s) <= n {
 		return s

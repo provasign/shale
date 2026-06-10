@@ -140,6 +140,21 @@ func TestCardMultiSession(t *testing.T) {
 	}
 }
 
+func TestCardTranscriptLink(t *testing.T) {
+	id := "a1b2c3d4-5e6f-7890-abcd-ef1234567890"
+	s := sampleShale(id)
+	got := Card(Input{
+		Shales:   []*store.Shale{s},
+		PRFiles:  samplePRFiles(),
+		BlobBase: "https://github.com/owner/repo/blob/deadbeef",
+	})
+	checkGolden(t, "transcript_link.md", got)
+	wantURL := "https://github.com/owner/repo/blob/deadbeef/.shale/transcripts/" + id + ".md"
+	if !strings.Contains(got, wantURL) {
+		t.Errorf("transcript link missing from card:\n%s", got)
+	}
+}
+
 func TestCardNoShale(t *testing.T) {
 	got := Card(Input{PRFiles: samplePRFiles()})
 	checkGolden(t, "no_shale.md", got)

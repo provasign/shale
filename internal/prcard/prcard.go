@@ -42,7 +42,12 @@ func Run(ctx context.Context, f forge.Forge, pr int) (Result, error) {
 	res.Shales = len(shales)
 	res.Tampered = tamper
 
-	in := render.Input{Shales: shales, PRFiles: prFiles, TamperFlags: tamper}
+	in := render.Input{
+		Shales:      shales,
+		PRFiles:     prFiles,
+		TamperFlags: tamper,
+		BlobBase:    f.BlobBase(head),
+	}
 	card := render.Card(in)
 	res.Card = card
 

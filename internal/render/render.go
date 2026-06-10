@@ -35,6 +35,10 @@ type Input struct {
 	Shales      []*store.Shale
 	PRFiles     []ChangedFile
 	TamperFlags []string // pre-computed warnings, one line each
+	// BlobBase is the base URL for blob links, e.g.
+	// "https://github.com/owner/repo/blob/<sha>". When set, transcript
+	// references in the card become clickable links.
+	BlobBase string
 }
 
 // Card renders the full card markdown, including the hidden upsert marker.
@@ -62,7 +66,7 @@ func Card(in Input) string {
 	for _, w := range in.TamperFlags {
 		fmt.Fprintf(&b, "\n> ⚠️ %s\n", Sanitize(w))
 	}
-	writeIntents(&b, in.Shales)
+	writeIntents(&b, in.Shales, in.BlobBase)
 	writeCompletions(&b, in.Shales)
 	writeFiles(&b, in)
 	writeChecks(&b, in.Shales)
@@ -142,7 +146,7 @@ func writeHeader(b *strings.Builder, shales []*store.Shale) {
 	}
 }
 
-func writeIntents(b *strings.Builder, shales []*store.Shale) {
+func writeIntents(b *strings.Builder, shales []*store.Shale, blobBase string) {
 	b.WriteString("\n### Intent\n")
 	wrote := false
 	for _, s := range shales {
@@ -160,7 +164,13 @@ func writeIntents(b *strings.Builder, shales []*store.Shale) {
 		meta := fmt.Sprintf("*Declared %s · session `%s`",
 			s.Intent.DeclaredAt.UTC().Format("2006-01-02 15:04"), Sanitize(displayID(s.ID)))
 		if s.Transcript != nil {
-			meta += fmt.Sprintf(" · transcript `sha256:%s…`", Sanitize(shortHash(s.Transcript.SHA256)))
+			hash := fmt.Sprintf("sha256:%s…", Sanitize(shortHash(s.Transcript.SHA256)))
+			if blobBase != "" {
+				url := blobBase + "/.shale/" + s.Transcript.Path
+				meta += fmt.Sprintf(" · [transcript](%s) `%s`", url, hash)
+			} else {
+				meta += fmt.Sprintf(" · transcript `%s`", hash)
+			}
 		}
 		b.WriteString("\n" + meta + "*\n")
 	}

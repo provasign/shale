@@ -32,6 +32,9 @@ type Forge interface {
 	// SetStatus posts a non-blocking status/check for the head SHA.
 	// conclusion is "neutral" or "success" — never "failure" (ADR D5).
 	SetStatus(ctx context.Context, headSHA, conclusion, title, summary string) error
+	// BlobBase returns the base URL for viewing blob files at head, e.g.
+	// "https://github.com/owner/repo/blob/<sha>". Returns "" if unknown.
+	BlobBase(head string) string
 }
 
 // Config carries the env contract (architecture §3.7).

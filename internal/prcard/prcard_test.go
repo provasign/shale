@@ -54,6 +54,7 @@ func (f *fakeForge) SetStatus(_ context.Context, _, conclusion, title, _ string)
 	f.statuses = append(f.statuses, conclusion+": "+title)
 	return nil
 }
+func (f *fakeForge) BlobBase(_ string) string { return "" }
 
 func shaleBytes(t *testing.T, s *store.Shale) []byte {
 	t.Helper()
