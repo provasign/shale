@@ -64,7 +64,8 @@ Sections, top to bottom:
 2. **Tamper flags** (when present) — transcript hash mismatch, evidence edited
    after capture. Rendered prominently as blockquote warnings.
 3. **Intent** — the agent's declared goal (title + body), with declaration
-   time, session ID, and a link to the SHA-256-pinned transcript.
+   time and session ID. (When a session carries a transcript — see §6 — the
+   card links it with its SHA-256 pin; current builds don't emit them.)
 4. **Completion** — the agent's closing self-report.
 5. **Changed files** — every file in the PR diff with its evidence state:
    `✅ <session>` hook-verified · `◐ <session>` git-derived ("changed during
@@ -179,10 +180,21 @@ forbidden change; `shale doctor` screams about it.
 
 ## §6 Privacy and the trust boundary
 
-- **Redaction before persistence.** Prompts pass a redaction pass before
-  anything is written, in one of three committed modes:
-  `full` · `redacted` (default — secrets/emails/tokens stripped) ·
-  `hash-only` (no prompt text leaves the laptop, only hashes).
+- **Redaction before persistence.** Agent-authored text (intent, notes,
+  commands) passes a redaction pass before anything is written, in one of
+  three committed modes: `full` · `redacted` (default — secrets/tokens
+  stripped) · `hash-only` (hashes only).
+- **Raw prompt transcripts are feature-flagged OFF** (`transcriptsEnabled`
+  in `internal/fold`, deliberately not exposed via config, flag, or env).
+  The capability exists — prompts-only, redacted, SHA-256-pinned transcripts
+  committed beside the evidence — but pattern-based redaction is not yet
+  trustworthy for free-form human text (unstructured passwords, PII, pasted
+  proprietary material, venting), and the regulatory position on persisting
+  developers' raw prompts is unsettled. Until both change, prompts live only
+  in gitignored `.shale/local/`; committed evidence carries the prompt count
+  and intent title hash, so the schema is unchanged whenever the flag flips.
+  The render/verify path for transcripts is kept working for historical
+  evidence.
 - **Tamper-evident, not tamper-proof — and the card says so.** Transcript
   hashes and after-capture edits are verified at render time and flagged.
   Wholesale fabrication by a malicious author is explicitly out of scope for

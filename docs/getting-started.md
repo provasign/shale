@@ -79,12 +79,13 @@ Work with your agent as usual. Behind the scenes:
 1. The steering prompt makes the agent declare its goal **before editing**:
    `shale intent "Add rate limiting to the login endpoint" --body "Token bucket, 10 req/min…"`
 2. Hooks (where the agent has them) record every file touch, command, and
-   prompt into `.shale/local/` — redacted as configured.
+   prompt into gitignored `.shale/local/` — laptop-only working state.
 3. When the work is done, the agent reports:
    `shale done --note "…" --model … --tokens-in … --tokens-out …`
 4. `git push` triggers the pre-push hook → `shale finalize --auto-commit`
-   folds the session into `.shale/<session>.yaml` plus a prompts-only
-   transcript, commits them, and lets the push through.
+   folds the session into `.shale/<session>.yaml`, commits it, and lets the
+   push through. Raw prompt text is **not** included — see
+   [privacy](#what-the-evidence-looks-like) below.
 
 > **Note:** the finalize commit is created during the push, so it stays local
 > until the *next* push. Push once more (or amend your workflow to push after
@@ -121,13 +122,20 @@ shale render --local
 .shale/
   config.yaml                  # privacy mode (committed)
   25f37dfc-….yaml              # one file per agent session
-  transcripts/25f37dfc-….md    # prompts-only, redacted, SHA-256 pinned
+  local/                       # gitignored — raw events, prompts; never committed
 ```
 
 Session files record intent, files touched (with hook/git provenance),
-commands with exit codes, model/token/cost metadata, and timestamps. The
-transcript hash is verified at render time — editing evidence after the fact
-puts a tamper warning on the card.
+commands with exit codes, model/token/cost metadata, and timestamps —
+agent-authored text passes a secret-redaction pass first. Editing evidence
+after capture puts a tamper warning on the card.
+
+**Raw prompts never leave your laptop.** Shale can capture and redact the
+prompts developers type, but committing prompt transcripts is **disabled in
+the product** (a build-time flag, not configurable) until the redaction
+layer is proven against free-form human text and the regulatory questions
+around persisting raw prompts are settled. Committed evidence carries only a
+prompt count and an intent integrity hash.
 
 ## Next steps
 

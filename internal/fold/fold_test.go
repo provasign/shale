@@ -73,7 +73,7 @@ func TestRunFullSession(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(res.Written) != 2 { // transcript + yaml
+	if len(res.Written) != 1 { // yaml only — transcripts are feature-flagged off
 		t.Fatalf("written = %v", res.Written)
 	}
 
@@ -116,21 +116,22 @@ func TestRunFullSession(t *testing.T) {
 		t.Fatalf("classification = %+v", s.Commands)
 	}
 
-	// Transcript exists, hash matches, and the seeded secret is redacted.
-	tr := filepath.Join(root, ".shale", "transcripts", "SESSFULL01.md")
-	content, err := os.ReadFile(tr)
+	// Transcripts are feature-flagged OFF (transcriptsEnabled = false): the
+	// raw prompt — which carries a seeded secret — must never reach the repo,
+	// in any privacy mode. prompt_count and the title hash still work.
+	if s.Transcript != nil {
+		t.Fatalf("transcript written despite the feature flag: %+v", s.Transcript)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".shale", "transcripts")); !os.IsNotExist(err) {
+		t.Fatal("transcripts directory created despite the feature flag")
+	}
+	// The seeded secret must not appear anywhere in the committed YAML either.
+	rawYAML, err := os.ReadFile(filepath.Join(root, ".shale", "SESSFULL01.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(content), "ghp_") {
-		t.Fatal("secret survived into committed transcript")
-	}
-	sum := sha256.Sum256(content)
-	if s.Transcript.SHA256 != hex.EncodeToString(sum[:]) {
-		t.Fatal("transcript hash mismatch")
-	}
-	if s.Redactions == 0 {
-		t.Fatal("redaction hit not counted")
+	if strings.Contains(string(rawYAML), "ghp_") {
+		t.Fatal("secret survived into committed evidence")
 	}
 
 	// Idempotency: re-run with no new events is a clean no-op.

@@ -20,6 +20,16 @@ import (
 	"github.com/provasign/shale/internal/store"
 )
 
+// transcriptsEnabled is a build-time feature flag, deliberately NOT exposed
+// through config.yaml, flags, or env: while false, finalize never writes a
+// prompt transcript into the repo, regardless of privacy mode. Raw prompts
+// remain in .shale/local/ on the laptop only (gitignored), and prompt_count /
+// the intent title hash still work, so flipping this later changes nothing
+// about the evidence schema. Off until (a) the redaction layer has earned
+// confidence beyond pattern matching and (b) the regulatory questions around
+// persisting developers' raw prompts are settled. See README "Privacy".
+const transcriptsEnabled = false
+
 // Options configures one finalize run.
 type Options struct {
 	RepoRoot string
@@ -223,7 +233,7 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 
 	// Transcript: prompts-only by default (ADR D3a) — user prompts +
 	// timestamps, never tool output. Omitted entirely in hash-only mode.
-	if opts.Privacy != store.PrivacyHashOnly && len(prompts) > 0 {
+	if transcriptsEnabled && opts.Privacy != store.PrivacyHashOnly && len(prompts) > 0 {
 		var b strings.Builder
 		fmt.Fprintf(&b, "# Session %s — prompts-only transcript\n\n", sessionID)
 		for _, p := range prompts {

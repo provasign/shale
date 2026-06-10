@@ -69,13 +69,18 @@ completion:
   iterations: 3                    # prompt-response cycles
   # duration_minutes: derived automatically from intent.declared_at → finalized_at
 
-transcript:
+transcript:                        # OPTIONAL — see note below
   path: "transcripts/01J9ZK7Q4N8WPXG2.md"   # omit in hash-only mode
   sha256: "4be91d03…"              # hash of the redacted transcript file as committed
   kind: "prompts"                  # prompts (default) | full
   # "prompts": user prompts + timestamps + one-line turn summaries ONLY —
   # never tool outputs or agent reasoning. Keeps committed transcripts ~KBs
   # (repo-growth rule, ADR D3a). "full" is an explicit opt-in.
+  # NOTE: the field stays in the schema and renderers MUST handle it, but
+  # current shale builds never emit it — raw prompt capture is disabled by a
+  # build-time flag pending redaction confidence and regulatory review
+  # (docs/product.md §6). Third-party emitters should treat committing raw
+  # prompt text with the same caution.
 
 files:                             # union of agent file touches, repo-relative
   - path: "internal/auth/ratelimit.go"

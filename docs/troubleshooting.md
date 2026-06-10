@@ -113,6 +113,10 @@ which tracks the latest release).
 
 ### "transcript hash mismatch" / "edited after capture" warnings
 
+> Current builds don't write transcripts at all (raw prompt capture is
+> feature-flagged off — see the README's Privacy section). Hash-mismatch
+> warnings can still appear for evidence committed by older versions.
+
 Working as intended: someone modified evidence after it was finalized. The
 card flags it and treats the affected content as unverified. If this was a
 legitimate rebase artifact, re-running the session or removing and

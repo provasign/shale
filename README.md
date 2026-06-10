@@ -71,7 +71,7 @@ This is an actual card from [a live demo PR](https://github.com/provasign/shale-
 > >
 > > Token bucket per client IP, 10 requests/min, in-memory. Return 429 with Retry-After. No external deps.
 >
-> *Declared 2026-06-10 12:54 · session `25f37dfc` · transcript `sha256:b95fc42c…`*
+> *Declared 2026-06-10 12:54 · session `25f37dfc`*
 >
 > #### Completion
 > > Token-bucket limiter with per-IP keying; 429 + Retry-After on excess. Unit tests cover exhaustion and refill.
@@ -134,10 +134,21 @@ completion, cost, and git-derived file evidence marked `◐ not hook-verified`.
 
 ## Privacy
 
-Prompts are **redacted by default** before anything is persisted
-(`shale init --privacy full|redacted|hash-only`). Evidence lives in your
-repo, the card renders in your CI with your `GITHUB_TOKEN` — Shale makes no
-network calls from your laptop and has no telemetry, accounts, or server.
+Evidence lives in your repo, the card renders in your CI with your
+`GITHUB_TOKEN` — Shale makes no network calls from your laptop and has no
+telemetry, accounts, or server. Agent-authored text (intent, completion
+notes, recorded commands) passes a secret-redaction pass before anything is
+persisted (`shale init --privacy full|redacted|hash-only`).
+
+**Raw prompt capture is built but switched off.** Shale can also capture the
+raw prompts developers type and redact them (secrets, credentials, tokens)
+before committing a prompts-only transcript alongside the evidence. We have
+**disabled this in the product** — a build-time flag, deliberately not
+configurable — until we are confident the redaction layer is strong enough
+for free-form human text and the regulatory questions around capturing raw
+developer prompts are settled. Today, prompt-derived data never leaves your
+laptop: prompts stay in gitignored `.shale/local/`, and only the prompt
+count and an intent integrity hash appear in committed evidence.
 
 ## Related projects
 
