@@ -2,12 +2,14 @@
 ## 🧾 Shale · 1 session · claude-code (claude-fable-5)
 claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 
+> ℹ️ Hook validation was not observed for session `k1l2m3n4o5`; file evidence is git-derived and token/command telemetry may be incomplete.
+
 ### Intent
 > **Add rate limiting to the login endpoint**
 >
 > Brute force attempts observed in prod logs. Redis counter, 10 req/min per IP.
 
-*Declared 2026-06-09 14:02 · session `k1l2m3n4o5` · transcript `sha256:4be91d03…`*
+*Declared 2026-06-09 14:02 · session `k1l2m3n4o5` · model `claude-fable-5` · transcript `sha256:4be91d03…`*
 
 ### Completion
 > Redis-backed rate limiter implemented. In-memory fallback added.

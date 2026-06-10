@@ -66,6 +66,7 @@ func Card(in Input) string {
 	for _, w := range in.TamperFlags {
 		fmt.Fprintf(&b, "\n> ⚠️ %s\n", Sanitize(w))
 	}
+	writeHookValidationNotes(&b, in.Shales)
 	writeIntents(&b, in.Shales, in.BlobBase)
 	writeCompletions(&b, in.Shales)
 	writeFiles(&b, in)
@@ -91,8 +92,8 @@ func writeHeader(b *strings.Builder, shales []*store.Shale) {
 		if s.Agent.Tool != "" {
 			tools[s.Agent.Tool] = true
 		}
-		if s.Agent.Model != "" {
-			models[s.Agent.Model] = true
+		if model := modelForSession(s); model != "" {
+			models[model] = true
 		}
 	}
 	head := fmt.Sprintf("## 🧾 Shale · %d session%s", len(shales), plural(len(shales)))
@@ -146,6 +147,30 @@ func writeHeader(b *strings.Builder, shales []*store.Shale) {
 	}
 }
 
+func writeHookValidationNotes(b *strings.Builder, shales []*store.Shale) {
+	var unverified []string
+	for _, s := range shales {
+		if len(s.Files) == 0 {
+			continue
+		}
+		haveHook := false
+		for _, f := range s.Files {
+			if f.Via == store.ViaHook {
+				haveHook = true
+				break
+			}
+		}
+		if !haveHook {
+			unverified = append(unverified, displayID(s.ID))
+		}
+	}
+	if len(unverified) == 0 {
+		return
+	}
+	fmt.Fprintf(b, "\n> ℹ️ Hook validation was not observed for session%s `%s`; file evidence is git-derived and token/command telemetry may be incomplete.\n",
+		plural(len(unverified)), Sanitize(strings.Join(unverified, "`, `")))
+}
+
 func writeIntents(b *strings.Builder, shales []*store.Shale, blobBase string) {
 	b.WriteString("\n### Intent\n")
 	wrote := false
@@ -163,6 +188,9 @@ func writeIntents(b *strings.Builder, shales []*store.Shale, blobBase string) {
 		}
 		meta := fmt.Sprintf("*Declared %s · session `%s`",
 			s.Intent.DeclaredAt.UTC().Format("2006-01-02 15:04"), Sanitize(displayID(s.ID)))
+		if model := modelForSession(s); model != "" {
+			meta += fmt.Sprintf(" · model `%s`", Sanitize(model))
+		}
 		if s.Transcript != nil {
 			hash := fmt.Sprintf("sha256:%s…", Sanitize(shortHash(s.Transcript.SHA256)))
 			if blobBase != "" {
@@ -178,6 +206,19 @@ func writeIntents(b *strings.Builder, shales []*store.Shale, blobBase string) {
 		// Absence is explicit, never silent (spec rule 5).
 		b.WriteString("*No intent declared for this PR's sessions.*\n")
 	}
+}
+
+func modelForSession(s *store.Shale) string {
+	if s == nil {
+		return ""
+	}
+	if s.Agent.Model != "" {
+		return s.Agent.Model
+	}
+	if s.Completion != nil {
+		return s.Completion.Model
+	}
+	return ""
 }
 
 func writeCompletions(b *strings.Builder, shales []*store.Shale) {

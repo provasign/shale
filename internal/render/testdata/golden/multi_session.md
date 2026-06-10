@@ -7,10 +7,10 @@
 >
 > Brute force attempts observed in prod logs. Redis counter, 10 req/min per IP.
 
-*Declared 2026-06-09 14:02 · session `a1b2c3d4e5` · transcript `sha256:4be91d03…`*
+*Declared 2026-06-09 14:02 · session `a1b2c3d4e5` · model `claude-fable-5` · transcript `sha256:4be91d03…`*
 > **Add tests for the fallback path**
 
-*Declared 2026-06-09 14:02 · session `f6g7h8i9j0` · transcript `sha256:4be91d03…`*
+*Declared 2026-06-09 14:02 · session `f6g7h8i9j0` · model `claude-sonnet-4-6` · transcript `sha256:4be91d03…`*
 
 ### Completion
 > Redis-backed rate limiter implemented. In-memory fallback added.

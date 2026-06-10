@@ -63,17 +63,21 @@ Sections, top to bottom:
    summary.
 2. **Tamper flags** (when present) — transcript hash mismatch, evidence edited
    after capture. Rendered prominently as blockquote warnings.
-3. **Intent** — the agent's declared goal (title + body), with declaration
-   time and session ID. (When a session carries a transcript — see §6 — the
-   card links it with its SHA-256 pin; current builds don't emit them.)
-4. **Completion** — the agent's closing self-report.
-5. **Changed files** — every file in the PR diff with its evidence state:
+3. **Hook-fidelity notes** (when present) — sessions that only have
+   git-derived file evidence are called out so reviewers know hook validation
+   was not observed and token/command telemetry may be incomplete.
+4. **Intent** — the agent's declared goal (title + body), with declaration
+   time, session ID, and self-reported model when available. (When a session
+   carries a transcript — see §6 — the card links it with its SHA-256 pin;
+   current builds don't emit them.)
+5. **Completion** — the agent's closing self-report.
+6. **Changed files** — every file in the PR diff with its evidence state:
    `✅ <session>` hook-verified · `◐ <session>` git-derived ("changed during
    session — not hook-verified") · `—` no evidence. Sensitive paths
    (dependency manifests, CI config, IaC, auth/crypto paths) are bolded and,
    on large PRs, kept above the fold while the rest collapses into a
    directory-grouped `<details>` block.
-6. **Checks recorded locally** — commands classified as tests/scans, with
+7. **Checks recorded locally** — commands classified as tests/scans, with
    exit codes and times, footnoted *"Advisory — CI is authoritative."*
 
 Two invariants shape everything above:

@@ -11,7 +11,7 @@ claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 >
 > Brute force attempts observed in prod logs. Redis counter, 10 req/min per IP.
 
-*Declared 2026-06-09 14:02 · session `a1b2c3d4e5` · transcript `sha256:4be91d03…`*
+*Declared 2026-06-09 14:02 · session `a1b2c3d4e5` · model `claude-fable-5` · transcript `sha256:4be91d03…`*
 
 ### Completion
 > Redis-backed rate limiter implemented. In-memory fallback added.

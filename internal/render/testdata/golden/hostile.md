@@ -7,7 +7,7 @@ claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 >
 > &lt;script&gt;steal()&lt;/script&gt; ping @​maintainer
 
-*Declared 2026-06-09 14:02 · session `evil123456` · transcript `sha256:4be91d03…`*
+*Declared 2026-06-09 14:02 · session `evil123456` · model `claude-fable-5` · transcript `sha256:4be91d03…`*
 
 ### Completion
 > done &amp; dusted &lt;iframe src=evil&gt;

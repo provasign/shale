@@ -138,6 +138,23 @@ func TestCardMultiSession(t *testing.T) {
 	if !strings.Contains(got, "2 sessions") {
 		t.Error("multi-session count missing")
 	}
+	if !strings.Contains(got, "session `a1b2c3d4e5` · model `claude-fable-5`") ||
+		!strings.Contains(got, "session `f6g7h8i9j0` · model `claude-sonnet-4-6`") {
+		t.Errorf("intent metadata must tie each session to its model:\n%s", got)
+	}
+}
+
+func TestCardUsesCompletionModelWhenAgentModelMissing(t *testing.T) {
+	s := sampleShale("codex-session")
+	s.Agent.Model = ""
+	s.Completion.Model = "gpt-5-codex"
+	got := Card(Input{Shales: []*store.Shale{s}, PRFiles: samplePRFiles()})
+	if !strings.Contains(got, "Shale · 1 session · claude-code (gpt-5-codex)") {
+		t.Errorf("header must include completion model when agent model is absent:\n%s", got)
+	}
+	if !strings.Contains(got, "session `codex-session` · model `gpt-5-codex`") {
+		t.Errorf("intent metadata must include completion model fallback:\n%s", got)
+	}
 }
 
 func TestCardTranscriptLink(t *testing.T) {
@@ -174,6 +191,10 @@ func TestCardGitDerivedEvidence(t *testing.T) {
 	checkGolden(t, "git_derived.md", got)
 	if !strings.Contains(got, "◐ k1l2m3n4o5") || !strings.Contains(got, "not hook-verified") {
 		t.Error("git-derived evidence must be visually distinct (spec rule 9)")
+	}
+	if !strings.Contains(got, "Hook validation was not observed for session `k1l2m3n4o5`") ||
+		!strings.Contains(got, "token/command telemetry may be incomplete") {
+		t.Errorf("git-derived-only sessions must carry an explicit hook validation note:\n%s", got)
 	}
 }
 
