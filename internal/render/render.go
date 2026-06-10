@@ -1,5 +1,5 @@
 // Package render builds the Shale card: a pure function from shale files +
-// the PR file list to GitHub-flavored markdown (docs/01-product.md §3.3).
+// the PR file list to GitHub-flavored markdown (docs/product.md §3).
 // All shale-derived text is attacker-controlled data and passes through
 // Sanitize before entering the card (workstream D6).
 package render
@@ -73,7 +73,7 @@ func Card(in Input) string {
 	return b.String()
 }
 
-// Nudge is the exact no-shale copy from docs/01-product.md §3.4.
+// Nudge is the exact no-shale copy from docs/product.md §3.
 func Nudge() string {
 	return NudgeMarker + `
 ## 🧾 No shale for this PR
@@ -270,7 +270,7 @@ func writeFiles(b *strings.Builder, in Input) {
 	}
 
 	// Large PR: flagged rows above the fold, the rest grouped by directory
-	// inside a collapsible block (docs/01-product.md §3.3).
+	// inside a collapsible block (docs/product.md §3).
 	b.WriteString(header)
 	for _, r := range rows {
 		if r.flagged {
@@ -328,7 +328,7 @@ func writeChecks(b *strings.Builder, shales []*store.Shale) {
 }
 
 // sensitiveReason flags paths a security reviewer must see above the fold.
-// Built-in list per architecture §3.4; policy.yaml override is MVP 3.
+// Built-in list per docs/product.md §5; policy.yaml override is MVP 3.
 func sensitiveReason(p string) string {
 	base := path.Base(p)
 	lower := strings.ToLower(p)

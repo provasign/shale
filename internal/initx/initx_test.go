@@ -117,7 +117,7 @@ func TestInstallRepoHooksAllAgentsGuardedIdempotent(t *testing.T) {
 		t.Fatal(err)
 	}
 	// All four files, no detection: the initializer can't know what agents
-	// future contributors use (docs/06-agent-hooks.md §4.3).
+	// future contributors use (docs/product.md §4).
 	if len(written) != 4 {
 		t.Fatalf("written = %v", written)
 	}

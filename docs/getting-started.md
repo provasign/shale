@@ -132,5 +132,5 @@ puts a tamper warning on the card.
 ## Next steps
 
 - [Troubleshooting](troubleshooting.md) — hooks not firing, card not updating, Windows notes
-- [Agent hooks design](06-agent-hooks.md) — how capture works per agent, repo vs global wiring
-- [Shale file spec](03-shale-spec.md) — the evidence format, for tool builders
+- [Product, architecture & design](product.md) — how capture works per agent, the card, and the design decisions behind them
+- [Shale file spec](shale-spec.md) — the evidence format, for tool builders

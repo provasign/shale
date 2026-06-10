@@ -10,7 +10,7 @@ import (
 
 func intPtr(i int) *int { return &i }
 
-// specExample mirrors the worked example in docs/03-shale-spec.md §2.
+// specExample mirrors the worked example in docs/shale-spec.md §2.
 func specExample(t *testing.T) *Shale {
 	t.Helper()
 	created := time.Date(2026, 6, 9, 14, 2, 11, 0, time.UTC)

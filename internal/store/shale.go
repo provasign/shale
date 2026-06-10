@@ -1,5 +1,5 @@
 // Package store owns the shale evidence format: the spec-v0 YAML structs
-// (docs/03-shale-spec.md), the session JSONL event log under .shale/local/,
+// (docs/shale-spec.md), the session JSONL event log under .shale/local/,
 // and the append-only rules for finalized files.
 package store
 
@@ -18,7 +18,7 @@ import (
 // SchemaVersion is the shale spec major version this build writes.
 const SchemaVersion = "0"
 
-// Privacy modes (docs/03-shale-spec.md §2).
+// Privacy modes (docs/shale-spec.md §2).
 const (
 	PrivacyFull     = "full"
 	PrivacyRedacted = "redacted"

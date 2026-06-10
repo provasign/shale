@@ -1,63 +1,70 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 332" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 392" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="13.5">
+  <!-- A Claude Code session with Shale wired in. Every output line below is
+       real: captured verbatim from a live session (shale CLI acks, finalize
+       output, evidence commit). The agent calls shale; the user just works. -->
   <style>
     .l { opacity: 0; }
     @keyframes k1  { 0%,2%  { opacity:0 } 4%,90%  { opacity:1 } 97%,100% { opacity:0 } }
-    @keyframes k2  { 0%,8%  { opacity:0 } 10%,90% { opacity:1 } 97%,100% { opacity:0 } }
-    @keyframes k3  { 0%,16% { opacity:0 } 18%,90% { opacity:1 } 97%,100% { opacity:0 } }
-    @keyframes k4  { 0%,24% { opacity:0 } 26%,90% { opacity:1 } 97%,100% { opacity:0 } }
-    @keyframes k5  { 0%,34% { opacity:0 } 36%,90% { opacity:1 } 97%,100% { opacity:0 } }
-    @keyframes k6  { 0%,42% { opacity:0 } 44%,90% { opacity:1 } 97%,100% { opacity:0 } }
-    @keyframes k7  { 0%,52% { opacity:0 } 54%,90% { opacity:1 } 97%,100% { opacity:0 } }
-    @keyframes k8  { 0%,60% { opacity:0 } 62%,90% { opacity:1 } 97%,100% { opacity:0 } }
-    @keyframes k9  { 0%,70% { opacity:0 } 72%,90% { opacity:1 } 97%,100% { opacity:0 } }
+    @keyframes k2  { 0%,9%  { opacity:0 } 11%,90% { opacity:1 } 97%,100% { opacity:0 } }
+    @keyframes k3  { 0%,18% { opacity:0 } 20%,90% { opacity:1 } 97%,100% { opacity:0 } }
+    @keyframes k4  { 0%,27% { opacity:0 } 29%,90% { opacity:1 } 97%,100% { opacity:0 } }
+    @keyframes k5  { 0%,36% { opacity:0 } 38%,90% { opacity:1 } 97%,100% { opacity:0 } }
+    @keyframes k6  { 0%,46% { opacity:0 } 48%,90% { opacity:1 } 97%,100% { opacity:0 } }
+    @keyframes k7  { 0%,56% { opacity:0 } 58%,90% { opacity:1 } 97%,100% { opacity:0 } }
+    @keyframes k8  { 0%,66% { opacity:0 } 68%,90% { opacity:1 } 97%,100% { opacity:0 } }
+    @keyframes k9  { 0%,76% { opacity:0 } 78%,90% { opacity:1 } 97%,100% { opacity:0 } }
     @keyframes blink { 0%,49% { opacity:1 } 50%,100% { opacity:0 } }
-    .a1 { animation: k1 14s linear infinite } .a2 { animation: k2 14s linear infinite }
-    .a3 { animation: k3 14s linear infinite } .a4 { animation: k4 14s linear infinite }
-    .a5 { animation: k5 14s linear infinite } .a6 { animation: k6 14s linear infinite }
-    .a7 { animation: k7 14s linear infinite } .a8 { animation: k8 14s linear infinite }
-    .a9 { animation: k9 14s linear infinite }
+    .a1 { animation: k1 16s linear infinite } .a2 { animation: k2 16s linear infinite }
+    .a3 { animation: k3 16s linear infinite } .a4 { animation: k4 16s linear infinite }
+    .a5 { animation: k5 16s linear infinite } .a6 { animation: k6 16s linear infinite }
+    .a7 { animation: k7 16s linear infinite } .a8 { animation: k8 16s linear infinite }
+    .a9 { animation: k9 16s linear infinite }
     .cursor { animation: blink 1.1s steps(1) infinite }
-    .p  { fill: #38d996 } .t { fill: #d7e2ec } .m { fill: #8b98a5 } .ok { fill: #38d996 } .hl { fill: #7dd3fc }
+    .u { fill: #e6edf3 } .tool { fill: #d2a8ff } .out { fill: #8b98a5 }
+    .ok { fill: #38d996 } .hook { fill: #748190; font-style: italic } .path { fill: #7dd3fc }
   </style>
 
-  <!-- terminal chrome -->
-  <rect x="1" y="1" width="718" height="330" rx="10" fill="#0d1117" stroke="#273241"/>
+  <rect x="1" y="1" width="718" height="390" rx="10" fill="#0d1117" stroke="#273241"/>
   <rect x="1" y="1" width="718" height="34" rx="10" fill="#161b22"/>
   <rect x="1" y="24" width="718" height="11" fill="#161b22"/>
   <circle cx="22" cy="18" r="5.5" fill="#ff5f57"/>
   <circle cx="42" cy="18" r="5.5" fill="#febc2e"/>
   <circle cx="62" cy="18" r="5.5" fill="#28c840"/>
-  <text x="360" y="22" text-anchor="middle" fill="#748190" font-size="12">agent session — your-repo</text>
+  <text x="360" y="22" text-anchor="middle" fill="#748190" font-size="12">claude — your-repo (shale enabled)</text>
 
-  <!-- the session, replayed -->
+  <!-- user asks; the agent does the shale ceremony itself -->
   <g class="l a1">
-    <text x="24" y="62"><tspan class="p">$</tspan><tspan class="t" dx="8">shale intent "Add rate limiting to the login endpoint"</tspan></text>
+    <text x="24" y="62"><tspan class="ok">&gt;</tspan><tspan class="u" dx="8">Add rate limiting to the login endpoint — 10 req/min per IP</tspan></text>
   </g>
   <g class="l a2">
-    <text x="24" y="88"><tspan class="ok">✓</tspan><tspan class="m" dx="8">intent recorded (session 25f37d)</tspan></text>
+    <text x="24" y="94"><tspan class="tool">⏺ Bash</tspan><tspan class="out">(shale intent "Add rate limiting to the login endpoint")</tspan></text>
+    <text x="40" y="114"><tspan class="out">⎿</tspan><tspan class="ok" dx="8">✓ intent recorded (session 25f37d)</tspan></text>
   </g>
   <g class="l a3">
-    <text x="24" y="118"><tspan class="m">⋮  agent writes</tspan><tspan class="hl" dx="8">internal/ratelimit/ratelimit.go</tspan><tspan class="m" dx="8">+ tests</tspan></text>
+    <text x="24" y="146"><tspan class="tool">⏺ Write</tspan><tspan class="out">(</tspan><tspan class="path">internal/ratelimit/ratelimit.go</tspan><tspan class="out">)</tspan><tspan class="hook" dx="12">· hook → shale capture</tspan></text>
   </g>
   <g class="l a4">
-    <text x="24" y="144"><tspan class="m">⋮  agent runs</tspan><tspan class="t" dx="8">go test ./...</tspan><tspan class="ok" dx="10">✓ passed</tspan></text>
+    <text x="24" y="172"><tspan class="tool">⏺ Write</tspan><tspan class="out">(</tspan><tspan class="path">internal/ratelimit/ratelimit_test.go</tspan><tspan class="out">)</tspan><tspan class="hook" dx="12">· hook → shale capture</tspan></text>
   </g>
   <g class="l a5">
-    <text x="24" y="174"><tspan class="p">$</tspan><tspan class="t" dx="8">shale done --note "Token-bucket limiter; tests cover refill"</tspan></text>
+    <text x="24" y="198"><tspan class="tool">⏺ Bash</tspan><tspan class="out">(go test ./...)</tspan></text>
+    <text x="40" y="218"><tspan class="out">⎿</tspan><tspan class="ok" dx="8">ok</tspan><tspan class="out" dx="10">internal/ratelimit  0.31s</tspan></text>
   </g>
   <g class="l a6">
-    <text x="24" y="200"><tspan class="ok">✓</tspan><tspan class="m" dx="8">completion recorded — finalize runs on push</tspan></text>
+    <text x="24" y="250"><tspan class="tool">⏺ Bash</tspan><tspan class="out">(shale done --note "Token-bucket limiter; tests cover refill")</tspan></text>
+    <text x="40" y="270"><tspan class="out">⎿</tspan><tspan class="ok" dx="8">✓ completion recorded (session 25f37d) — finalize runs on push</tspan></text>
   </g>
   <g class="l a7">
-    <text x="24" y="230"><tspan class="p">$</tspan><tspan class="t" dx="8">git push</tspan></text>
+    <text x="24" y="302"><tspan class="ok">❯</tspan><tspan class="u" dx="8">git push</tspan></text>
   </g>
   <g class="l a8">
-    <text x="24" y="256"><tspan class="ok">✓</tspan><tspan class="m" dx="8">evidence committed:</tspan><tspan class="t" dx="6">.shale/25f37dfc….yaml</tspan><tspan class="m" dx="6">+ redacted transcript</tspan></text>
+    <text x="24" y="326"><tspan class="out">shale: finalized 1 file(s)</tspan></text>
+    <text x="24" y="346"><tspan class="out">shale: evidence committed</tspan><tspan class="hook" dx="10">· chore(shale): session evidence</tspan></text>
   </g>
   <g class="l a9">
-    <rect x="24" y="276" width="672" height="34" rx="6" fill="#10231c" stroke="#1f5b43"/>
-    <text x="40" y="298"><tspan class="ok">🧾</tspan><tspan class="t" dx="10">Shale card rendered on the pull request</tspan><tspan class="m" dx="8">— intent · evidence · checks · gaps</tspan></text>
+    <rect x="24" y="358" width="672" height="26" rx="6" fill="#10231c" stroke="#1f5b43"/>
+    <text x="38" y="376"><tspan class="ok">🧾</tspan><tspan class="u" dx="10">The PR now carries the Shale card</tspan><tspan class="out" dx="8">— intent · evidence · checks · gaps</tspan></text>
   </g>
 
-  <text x="24" y="320" class="cursor p">▍</text>
+  <text x="640" y="62" class="cursor ok">▍</text>
 </svg>

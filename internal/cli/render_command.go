@@ -18,7 +18,7 @@ import (
 	"github.com/provasign/shale/internal/store"
 )
 
-// cmdRender is the CI entry point (env contract per architecture §3.7) and
+// cmdRender is the CI entry point (env contract per docs/product.md §5) and
 // the local preview.
 func cmdRender(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("render", flag.ContinueOnError)

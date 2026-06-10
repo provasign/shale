@@ -199,7 +199,7 @@ func (g *GitHub) CommitsTouching(ctx context.Context, ref, path string) ([]strin
 }
 
 func (g *GitHub) UpsertComment(ctx context.Context, pr int, marker, body string) error {
-	// Find a prior comment by hidden marker (architecture §3.4: edit in
+	// Find a prior comment by hidden marker (docs/product.md §5: edit in
 	// place, never spam).
 	for page := 1; ; page++ {
 		var batch []struct {

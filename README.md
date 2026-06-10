@@ -156,16 +156,12 @@ internal/store/         .shale read/write, schema versioning, redaction
 internal/render/        PR card rendering
 internal/forge/         forge API drivers (GitHub today)
 action/                 composite GitHub Action
-docs/                   getting started, troubleshooting, design docs
+docs/                   getting started, troubleshooting, product doc, spec
 ```
 
-Design docs, in reading order for contributors:
-[product](docs/01-product.md) ·
-[architecture](docs/02-architecture.md) ·
-[shale file spec](docs/03-shale-spec.md) ·
-[implementation plan](docs/04-implementation-plan.md) ·
-[decision records](docs/05-decisions.md) ·
-[agent hooks](docs/06-agent-hooks.md)
+For contributors:
+[product, architecture & design](docs/product.md) ·
+[shale file spec](docs/shale-spec.md)
 
 ## License
 

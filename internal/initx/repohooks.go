@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-// Repo-level hook wiring (docs/06-agent-hooks.md §3.3/§4.2). These files are
+// Repo-level hook wiring (docs/product.md §4). These files are
 // committed, so they run on machines we know nothing about. Two rules follow:
 //
 //  1. Every command is fail-open in the shell that runs it: when `shale` is
@@ -94,7 +94,7 @@ func InstallRepoHooks(repoRoot string) ([]string, error) {
 
 	// Claude Code + VS Code Copilot — one Claude-format file covers both
 	// (VS Code's chat.hookFilesLocations enables .claude/settings.json by
-	// default; docs/06-agent-hooks.md §2.1).
+	// default; docs/product.md §4).
 	claudeRel := filepath.Join(".claude", "settings.json")
 	changed, err := installClaudeHooksAt(filepath.Join(repoRoot, claudeRel), posixGuard("claude-code"))
 	if err != nil {
@@ -126,7 +126,7 @@ type repoHookTarget struct {
 
 // repoHookTargets returns the committed hook files for Copilot, Cursor and
 // Codex with guarded (fail-open) commands. Event names and entry shapes follow
-// the official docs (docs/06-agent-hooks.md §2); the capture adapters for
+// the official docs (docs/product.md §4); the capture adapters for
 // these agents land in MVP 2 — until then the configs are inert by design.
 func repoHookTargets() []repoHookTarget {
 	copilot := copilotEntry(posixGuard("copilot"), psGuard("copilot"))
@@ -160,7 +160,7 @@ func repoHookTargets() []repoHookTarget {
 		{
 			// Codex: nested matcher-group shape (like Claude), commandWindows
 			// for cmd.exe. Requires a one-time `/hooks` trust review before
-			// committed hooks run (docs/06-agent-hooks.md §2.3).
+			// committed hooks run (docs/product.md §4).
 			Name:    "Codex",
 			RelPath: filepath.Join(".codex", "hooks.json"),
 			Events: map[string][]any{

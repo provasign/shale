@@ -24,7 +24,7 @@ var claudeHookEvents = []struct {
 }
 
 // ClaudeSettingsPath returns the global Claude Code settings file (hooks are
-// global per-machine — architecture §3.7).
+// global per-machine — docs/product.md §5).
 func ClaudeSettingsPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {

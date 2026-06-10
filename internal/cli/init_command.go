@@ -9,8 +9,8 @@ import (
 	"github.com/provasign/shale/internal/store"
 )
 
-// cmdInit is the 2-command setup (docs/01-product.md §3.1, redesigned per
-// docs/06-agent-hooks.md §4). Default mode is repo-level: everything it
+// cmdInit is the 2-command setup (docs/product.md §2, redesigned per
+// docs/product.md §4). Default mode is repo-level: everything it
 // writes is committed and travels on clone — steering, hook config for ALL
 // agents (no detection; the initializer can't know what future contributors
 // use, and the guarded commands are inert without the binary), scaffold,

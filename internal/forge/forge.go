@@ -1,7 +1,7 @@
 // Package forge abstracts the git hosting platform (ADR D10): the renderer
 // talks to this interface only, so the same binary works from GitHub
 // Actions, Jenkins, or any CI. All evidence/diff acquisition is API-based —
-// never a code checkout (architecture §3.7).
+// never a code checkout (docs/product.md §5).
 package forge
 
 import (
@@ -12,7 +12,7 @@ import (
 	"github.com/provasign/shale/internal/render"
 )
 
-// Forge is the driver interface (architecture §3.4). Drivers: github
+// Forge is the driver interface (docs/product.md §5). Drivers: github
 // (MVP 1), gitlab (MVP 2), bitbucket (backlog).
 type Forge interface {
 	// PRHead returns the head SHA of the pull request.
@@ -37,7 +37,7 @@ type Forge interface {
 	BlobBase(head string) string
 }
 
-// Config carries the env contract (architecture §3.7).
+// Config carries the env contract (docs/product.md §5).
 type Config struct {
 	Forge  string // SHALE_FORGE: github (default) | gitlab
 	Token  string // SHALE_TOKEN, falls back to GITHUB_TOKEN

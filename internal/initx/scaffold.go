@@ -21,7 +21,7 @@ so the evidence travels with the code and renders as a card on the PR.
 - ` + "`local/`" + ` is gitignored working state — never commit it.
 `
 
-// workflowYAML is the GitHub Actions workflow per architecture §3.6.
+// workflowYAML is the GitHub Actions workflow per docs/product.md §5.
 // SECURITY: pull_request_target + NO checkout, ever. Adding a checkout of PR
 // code to this workflow reintroduces the classic privilege-escalation hole
 // (ADR D12); shale doctor flags it.

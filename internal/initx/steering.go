@@ -17,7 +17,7 @@ const (
 	SteeringEnd   = "<!-- shale-end -->"
 )
 
-// SteeringBlock is the exact prompt from architecture §3.2a. It references
+// SteeringBlock is the exact prompt from docs/product.md §4. It references
 // CLI commands, not MCP tools (ADR D4: CLI over MCP).
 const SteeringBlock = SteeringStart + `
 ## Shale — agent evidence (do not remove)
