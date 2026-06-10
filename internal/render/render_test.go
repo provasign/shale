@@ -93,7 +93,7 @@ func TestCardSingleSession(t *testing.T) {
 		"47k tokens", "~$0.47", "3 iterations", "38 min",
 		"**Add rate limiting to the login endpoint**",
 		"14 prompts",
-		"✅ a1b2c3", "⚠️ none",
+		"✅ a1b2c3d4e5", "⚠️ none",
 		"dependency manifest", "CI config",
 		"Checks recorded locally", "✅ passed",
 		"Coverage gaps",
@@ -161,7 +161,7 @@ func TestCardGitDerivedEvidence(t *testing.T) {
 	}
 	got := Card(Input{Shales: []*store.Shale{s}, PRFiles: samplePRFiles()})
 	checkGolden(t, "git_derived.md", got)
-	if !strings.Contains(got, "◐ k1l2m3") || !strings.Contains(got, "not hook-verified") {
+	if !strings.Contains(got, "◐ k1l2m3n4o5") || !strings.Contains(got, "not hook-verified") {
 		t.Error("git-derived evidence must be visually distinct (spec rule 9)")
 	}
 }

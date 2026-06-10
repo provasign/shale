@@ -7,7 +7,7 @@ claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 >
 > &lt;script&gt;steal()&lt;/script&gt; ping @​maintainer
 
-*Declared 2026-06-09 14:02 · session `evil12` · 14 prompts · transcript hash `sha256:4be91d03…`*
+*Declared 2026-06-09 14:02 · session `evil123456` · 14 prompts · transcript hash `sha256:4be91d03…`*
 
 ### Completion
 > done &amp; dusted &lt;iframe src=evil&gt;
@@ -16,8 +16,8 @@ claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 | File | Agent session | Notes |
 |---|---|---|
 | `internal/auth/ratelimit.go` | ⚠️ none | **sensitive path: auth/crypto path** |
-| `internal/auth/ratelimit_test.go` | ✅ evil12 | **sensitive path: auth/crypto path** |
-| `internal/auth/login.go` | ✅ evil12 | **sensitive path: auth/crypto path** |
+| `internal/auth/ratelimit_test.go` | ✅ evil123456 | **sensitive path: auth/crypto path** |
+| `internal/auth/login.go` | ✅ evil123456 | **sensitive path: auth/crypto path** |
 | `go.mod` | ⚠️ none | **sensitive path: dependency manifest** |
 | `.github/workflows/deploy.yml` | ⚠️ none | **sensitive path: CI config** |
 

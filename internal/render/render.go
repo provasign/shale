@@ -156,7 +156,7 @@ func writeIntents(b *strings.Builder, shales []*store.Shale) {
 			}
 		}
 		meta := fmt.Sprintf("*Declared %s · session `%s`",
-			s.Intent.DeclaredAt.UTC().Format("2006-01-02 15:04"), Sanitize(shortID(s.ID)))
+			s.Intent.DeclaredAt.UTC().Format("2006-01-02 15:04"), Sanitize(s.ID))
 		if s.Intent.PromptCount > 0 {
 			meta += fmt.Sprintf(" · %d prompt%s", s.Intent.PromptCount, plural(s.Intent.PromptCount))
 		}
@@ -201,7 +201,7 @@ func writeFiles(b *strings.Builder, in Input) {
 			if prev, ok := evidence[f.Path]; ok && prev.via == store.ViaHook {
 				continue
 			}
-			evidence[f.Path] = fileEvidence{sessionID: shortID(s.ID), via: f.Via}
+			evidence[f.Path] = fileEvidence{sessionID: s.ID, via: f.Via}
 		}
 	}
 
@@ -375,13 +375,6 @@ func topDir(p string) string {
 		return p[:i] + "/"
 	}
 	return "./"
-}
-
-func shortID(id string) string {
-	if len(id) > 6 {
-		return id[:6]
-	}
-	return id
 }
 
 func shortHash(h string) string {

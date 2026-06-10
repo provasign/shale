@@ -7,7 +7,7 @@ claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 >
 > Brute force attempts observed in prod logs. Redis counter, 10 req/min per IP.
 
-*Declared 2026-06-09 14:02 · session `k1l2m3` · 14 prompts · transcript hash `sha256:4be91d03…`*
+*Declared 2026-06-09 14:02 · session `k1l2m3n4o5` · 14 prompts · transcript hash `sha256:4be91d03…`*
 
 ### Completion
 > Redis-backed rate limiter implemented. In-memory fallback added.
@@ -17,7 +17,7 @@ claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 |---|---|---|
 | `internal/auth/ratelimit.go` | ⚠️ none | **sensitive path: auth/crypto path** |
 | `internal/auth/ratelimit_test.go` | ⚠️ none | **sensitive path: auth/crypto path** |
-| `internal/auth/login.go` | ◐ k1l2m3 | changed during session — not hook-verified · **sensitive path: auth/crypto path** |
+| `internal/auth/login.go` | ◐ k1l2m3n4o5 | changed during session — not hook-verified · **sensitive path: auth/crypto path** |
 | `go.mod` | ⚠️ none | **sensitive path: dependency manifest** |
 | `.github/workflows/deploy.yml` | ⚠️ none | **sensitive path: CI config** |
 
