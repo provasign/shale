@@ -15,7 +15,7 @@ inputs:
   version:
     description: "shale release to use (binary version, checksum-pinned below)"
     required: false
-    default: "v0.1.1"
+    default: "v0.1.2"
 runs:
   using: composite
   steps:
