@@ -8,9 +8,7 @@
 
 Shale is the primary open-source product in the Provasign org. Prism is the
 secondary tool for graph-ranked agent context. Grove is the standalone graph
-engine for teams that want the code graph directly. The hosted/enterprise
-Provasign product is paused for now; the org name stays because the tools and
-package paths already live here.
+engine for teams that want the code graph directly.
 
 **License:** Apache-2.0.
 
@@ -110,7 +108,6 @@ instead of silently disappearing.
 | **Shale** | Primary product: agent PR evidence and intent cards | Active, Apache-2.0 |
 | **Prism** | Secondary product: graph-ranked context delivery for agents | Active, MIT |
 | **Grove** | Code graph engine for direct graph/index use and embedded tools | Active, MIT |
-| Provasign | Hosted/enterprise certification product | Paused/hidden |
 
 Shale may use Prism or Grove-backed conformance features over time, but the
 core product remains useful without a hosted backend.
