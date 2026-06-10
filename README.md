@@ -33,8 +33,11 @@ most agent code today, leave no trail.
    `shale intent` before the first edit and report completion via
    `shale done` — plain CLI calls, no MCP, so it works with **every** agent
    including Copilot (ADR D4). Agent-native hooks, where available, add
-   verified file-touch and command evidence automatically; a git-diff fallback
-   covers agents without hooks. The user changes nothing about how they work.
+   verified file-touch and command evidence automatically. `shale init` writes
+   repo-level hook config for Claude Code, Copilot, Cursor, and Codex; those
+   commands are silent no-ops until `shale` is installed and each agent trusts
+   its repo hooks. A git-diff fallback covers every agent when hooks do not
+   fire. The user changes nothing about how they work.
 2. **Makes the evidence travel with the code.** Evidence is written to
    `.shale/` in the repo (schema-versioned YAML, redacted) and rides along
    with the normal push. No server in the path.
@@ -64,6 +67,23 @@ What Shale deliberately does **not** do:
 > within 5 minutes of discovering this project, without creating an account or
 > deploying anything.**
 
+## Quickstart
+
+Install the latest release from
+<https://github.com/provasign/shale/releases/latest>, put the `shale` binary on
+your `PATH`, then run:
+
+```sh
+cd your-repo
+shale init
+git add . && git commit -m "chore: enable shale"
+```
+
+`shale init` writes the steering prompt, repo-level hook config, `.shale/`, the
+PR workflow, and a local pre-push hook. Repo hooks are guarded: teammates who
+clone the repo before installing Shale see no hook errors. Developers who want
+machine-wide capture can also run `shale init --global`.
+
 ## Relationship to Provasign
 
 Shale is the open, lightweight market wedge. Provasign (sibling repo) remains
@@ -92,7 +112,8 @@ shale/
 │   ├── 02-architecture.md  # components, data flow, language rationale
 │   ├── 03-shale-spec.md    # evidence format v0
 │   ├── 04-implementation-plan.md  # MVP 1/2/3 task breakdown (start here to build)
-│   └── 05-decisions.md     # decision records — do not relitigate these
+│   ├── 05-decisions.md     # decision records — do not relitigate these
+│   └── 06-agent-hooks.md   # agent hook locations, trust UX, repo/global wiring
 └── AGENTS.md               # instructions for the implementing agent
 ```
 

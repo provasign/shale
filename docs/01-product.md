@@ -37,17 +37,18 @@ is MVP 2.
 ### 3.1 Setup — the 5-minute promise (this flow is the product; protect it)
 
 ```
-$ brew install shale        # or: curl -fsSL https://get.shale.dev | bash
+$ # download the latest release from https://github.com/provasign/shale/releases/latest
 $ cd my-repo
 $ shale init
   ✓ Steering prompt added      (CLAUDE.md, AGENTS.md, .cursorrules,
                                 .github/copilot-instructions.md — tells the
                                 agent when to call shale intent / shale done)
-  ✓ Detected hook support: Claude Code
-  ✓ Installed capture hooks    (~/.claude/settings.json)
+  ✓ Wrote repo capture hooks   (.claude/settings.json, .github/hooks/shale.json,
+                                .cursor/hooks.json, .codex/hooks.json
+                                — all agents, inert without shale on PATH)
   ✓ Created .shale/            (committed; .shale/local/ gitignored)
   ✓ Wrote .github/workflows/shale.yml   (renders the card on PRs)
-  ? Prompt privacy: [1] full prompts  [2] redacted (default)  [3] hash-only
+  ✓ Installed pre-push hook    (runs shale finalize)
   → Commit these files and open your next PR as usual. Done.
 ```
 
@@ -55,7 +56,10 @@ The steering prompt is the universal layer — it works with **every** agent
 that reads an instruction file (Claude Code, Cursor, Codex, Copilot, Gemini,
 whatever ships next), because `shale intent` / `shale done` are plain CLI
 calls (ADR D4). Hooks, where the agent has them, add verified file-level
-evidence on top.
+evidence on top. Repo-level hook config is committed by default and guarded:
+if a contributor has not installed `shale`, the hook command silently no-ops.
+Agents with trust gates, such as Codex, activate the hook after their normal
+repo-hook review flow.
 
 Hard constraints on this flow:
 - **≤ 2 commands** (`install`, `init`). Everything else is a question with a default.
@@ -156,7 +160,8 @@ A contributor without Shale opens a PR on a repo that has the Action:
 ```markdown
 ## 🧾 No shale for this PR
 This repo renders agent evidence on PRs. No agent session evidence was found
-for these commits. If you used an AI agent: `brew install shale && shale init`
+for these commits. If you used an AI agent: install Shale from
+https://github.com/provasign/shale/releases/latest and run `shale init`
 (5 minutes, no account). If this was hand-written, ignore this — humans don't
 need shale. 🙂
 ```
@@ -177,10 +182,12 @@ the session), and consistent across every agent PR in the org.
 
 1. Contributor forks the repo — the fork already contains `.shale/`
    scaffold and the workflow file (they're committed upstream).
-2. If they've ever run `shale init` on their machine, agent capture hooks
-   are already global; at most they run `shale init --hooks-only` once in
-   the clone (installs the local pre-push hook). **No upstream registration,
-   no token, no "connect" step.**
+2. The fork also carries Shale's repo-level hook config. If the contributor has
+   `shale` on `PATH` and their agent trusts repo hooks, capture starts
+   automatically; otherwise the hook is a silent no-op and the steering + git
+   fallback still produce honest evidence. They may run `shale init --global`
+   for machine-wide capture, but there is **no upstream registration, no token,
+   no "connect" step.**
 3. They work, push to their fork, open the PR — shale files ride along as
    committed files and the upstream card renders with full evidence. (Token
    mechanics: the workflow uses `pull_request_target` and never checks out PR

@@ -12,43 +12,91 @@ import (
 // Repo-level hook wiring (docs/06-agent-hooks.md §3.3/§4.2). These files are
 // committed, so they run on machines we know nothing about. Two rules follow:
 //
-//  1. Every command is guarded: silently inert when `shale` is not on PATH —
-//     a contributor who never opted in must see zero errors, ever.
+//  1. Every command is fail-open in the shell that runs it: when `shale` is
+//     not on PATH it must be a SILENT no-op, not an error on every event. The
+//     shell differs per agent and per OS, so each gets the right guard form
+//     (§ command builders below).
 //  2. We write config for ALL agents, no detection, no prompting. The person
 //     running init cannot know which agents future contributors use (in open
 //     source, nobody can). The files are small, namespaced, reviewable, and
 //     inert until both the binary and the matching adapter exist; `shale
 //     capture` fails open on unknown adapters, so wiring may safely precede
-//     the adapter shipping.
+//     the adapter shipping (only claude-code is implemented in MVP 1).
 //
 // Detection-gating only makes sense for --global, where the question is what
 // is installed on *this* machine (see InstallGlobalHooks).
+//
+// Per-agent shell & shape, verified against vendor docs (2026-06-10):
+//   - Claude Code: single `command`, run via `sh -c` (unix) / Git Bash (win
+//     default). POSIX guard works on both. Nested matcher-group shape.
+//   - Codex: `command` (+ optional `commandWindows`), nested matcher-group
+//     shape. Windows shell for commandWindows is unspecified by the docs;
+//     we emit cmd.exe-native fail-open and will confirm by fixture when the
+//     codex adapter ships (MVP 2 — inert until then).
+//   - Copilot (.github/hooks, CLI + cloud agent + VS Code): FLAT handlers
+//     with `bash`/`powershell` fields. A bare `command` is copied to BOTH
+//     bash and powershell, so a POSIX string would break under PowerShell —
+//     we emit explicit `bash` and `powershell` guards instead.
+//   - Cursor: flat handler with `command`. Windows shell unverified; POSIX
+//     guard for now (adapter is MVP 2 — inert until then).
 
-// guardedCapture is the committed hook command: POSIX guard so a missing
-// binary is a silent no-op, trailing `|| true` so the guard's own failure
-// exit never surfaces as a hook error in the agent.
-func guardedCapture(adapter string) string {
+// --- command builders: the same capture call, fail-open per shell -----------
+
+// posixGuard runs the capture iff `shale` resolves, swallowing every failure
+// so the hook always exits 0. Works in sh, bash and Git Bash.
+func posixGuard(adapter string) string {
 	return "command -v shale >/dev/null 2>&1 && shale capture " + adapter + " || true"
 }
 
-// guardedCaptureWindows is the cmd.exe variant, for agents whose config
-// supports a per-OS command override (Codex commandWindows).
-func guardedCaptureWindows(adapter string) string {
-	return "where shale >NUL 2>&1 && shale capture " + adapter
+// cmdGuard is the cmd.exe equivalent: `ver >NUL` is cmd's always-0 "true".
+func cmdGuard(adapter string) string {
+	return "where shale >NUL 2>&1 && shale capture " + adapter + " || ver >NUL"
+}
+
+// psGuard is the PowerShell equivalent: Get-Command returns nothing when
+// absent, the if-body is skipped, the script exits 0.
+func psGuard(adapter string) string {
+	return "if (Get-Command shale -ErrorAction SilentlyContinue) { shale capture " + adapter + " }"
+}
+
+// plain is the unguarded call for --global installs: the user just ran the
+// binary on this machine, so the guard would only obscure.
+func plain(adapter string) string { return "shale capture " + adapter }
+
+// --- per-agent entry shapes -------------------------------------------------
+
+// nestedEntry is the Claude/Codex matcher-group shape: event → [{hooks:
+// [handler]}] with matcher omitted (matches all). win=="" omits commandWindows.
+func nestedEntry(posix, win string) []any {
+	h := map[string]any{"type": "command", "command": posix}
+	if win != "" {
+		h["commandWindows"] = win
+	}
+	return []any{map[string]any{"hooks": []any{h}}}
+}
+
+// copilotEntry is the flat Copilot handler with explicit per-shell commands.
+func copilotEntry(bash, powershell string) []any {
+	return []any{map[string]any{"type": "command", "bash": bash, "powershell": powershell}}
+}
+
+// cursorEntry is the flat Cursor handler.
+func cursorEntry(command string) []any {
+	return []any{map[string]any{"command": command}}
 }
 
 // InstallRepoHooks writes/merges the committed hook config for every agent
 // into repoRoot. Idempotent and additive: foreign entries are preserved, ours
-// are added once (detected by "shale capture" in the command). Returns the
-// repo-relative paths that changed.
+// are added once (detected by "shale capture" in any command field). Returns
+// the repo-relative paths that changed.
 func InstallRepoHooks(repoRoot string) ([]string, error) {
 	var written []string
 
 	// Claude Code + VS Code Copilot — one Claude-format file covers both
 	// (VS Code's chat.hookFilesLocations enables .claude/settings.json by
-	// default; see docs/06-agent-hooks.md §2.1).
+	// default; docs/06-agent-hooks.md §2.1).
 	claudeRel := filepath.Join(".claude", "settings.json")
-	changed, err := installClaudeHooksAt(filepath.Join(repoRoot, claudeRel), guardedCapture("claude-code"))
+	changed, err := installClaudeHooksAt(filepath.Join(repoRoot, claudeRel), posixGuard("claude-code"))
 	if err != nil {
 		return written, fmt.Errorf("claude repo hooks: %w", err)
 	}
@@ -77,15 +125,13 @@ type repoHookTarget struct {
 }
 
 // repoHookTargets returns the committed hook files for Copilot, Cursor and
-// Codex. Event names and entry shapes follow the official docs as of
-// 2026-06 (docs/06-agent-hooks.md §2); the capture adapters for these
-// agents land in MVP 2 — until then the configs are inert by design.
+// Codex with guarded (fail-open) commands. Event names and entry shapes follow
+// the official docs (docs/06-agent-hooks.md §2); the capture adapters for
+// these agents land in MVP 2 — until then the configs are inert by design.
 func repoHookTargets() []repoHookTarget {
-	copilotEntry := []any{map[string]any{"type": "command", "command": guardedCapture("copilot")}}
-	codexEntry := []any{map[string]any{
-		"command":        guardedCapture("codex"),
-		"commandWindows": guardedCaptureWindows("codex"),
-	}}
+	copilot := copilotEntry(posixGuard("copilot"), psGuard("copilot"))
+	cursor := cursorEntry(posixGuard("cursor"))
+	codex := nestedEntry(posixGuard("codex"), cmdGuard("codex"))
 	return []repoHookTarget{
 		{
 			// Copilot CLI + Copilot cloud agent + VS Code Copilot. camelCase
@@ -93,10 +139,10 @@ func repoHookTargets() []repoHookTarget {
 			Name:    "Copilot",
 			RelPath: filepath.Join(".github", "hooks", "shale.json"),
 			Events: map[string][]any{
-				"sessionStart":        copilotEntry,
-				"userPromptSubmitted": copilotEntry,
-				"postToolUse":         copilotEntry,
-				"sessionEnd":          copilotEntry,
+				"sessionStart":        copilot,
+				"userPromptSubmitted": copilot,
+				"postToolUse":         copilot,
+				"sessionEnd":          copilot,
 			},
 		},
 		{
@@ -104,23 +150,24 @@ func repoHookTargets() []repoHookTarget {
 			RelPath: filepath.Join(".cursor", "hooks.json"),
 			Top:     map[string]any{"version": 1},
 			Events: map[string][]any{
-				"sessionStart":       {map[string]any{"command": guardedCapture("cursor")}},
-				"beforeSubmitPrompt": {map[string]any{"command": guardedCapture("cursor")}},
-				"postToolUse":        {map[string]any{"command": guardedCapture("cursor")}},
-				"afterFileEdit":      {map[string]any{"command": guardedCapture("cursor")}},
-				"sessionEnd":         {map[string]any{"command": guardedCapture("cursor")}},
+				"sessionStart":       cursor,
+				"beforeSubmitPrompt": cursor,
+				"postToolUse":        cursor,
+				"afterFileEdit":      cursor,
+				"sessionEnd":         cursor,
 			},
 		},
 		{
-			// Codex requires a one-time `/hooks` trust review before
+			// Codex: nested matcher-group shape (like Claude), commandWindows
+			// for cmd.exe. Requires a one-time `/hooks` trust review before
 			// committed hooks run (docs/06-agent-hooks.md §2.3).
 			Name:    "Codex",
 			RelPath: filepath.Join(".codex", "hooks.json"),
 			Events: map[string][]any{
-				"SessionStart":     codexEntry,
-				"UserPromptSubmit": codexEntry,
-				"PostToolUse":      codexEntry,
-				"Stop":             codexEntry,
+				"SessionStart":     codex,
+				"UserPromptSubmit": codex,
+				"PostToolUse":      codex,
+				"Stop":             codex,
 			},
 		},
 	}
@@ -172,7 +219,7 @@ func mergeHookFile(path string, top map[string]any, events map[string][]any) (ch
 
 // marshalSettings renders committed config JSON without HTML escaping —
 // these files are human-reviewed, and the shell guards in hook commands
-// (`>`, `&&`) must stay readable, not become > soup.
+// (`>`, `&&`) must stay readable, not become &gt; soup.
 func marshalSettings(doc map[string]any) ([]byte, error) {
 	var buf bytes.Buffer
 	enc := json.NewEncoder(&buf)
@@ -185,8 +232,8 @@ func marshalSettings(doc map[string]any) ([]byte, error) {
 }
 
 // hasShaleCommand reports whether any entry carries a shale capture command,
-// in either the flat ({"command": …}) or nested ({"hooks": [{"command": …}]})
-// entry shape.
+// in any entry shape (flat {"command"|"bash"|"powershell": …} or nested
+// {"hooks": [{"command": …}]}).
 func hasShaleCommand(entries []any) bool {
 	var scan func(v any) bool
 	scan = func(v any) bool {
@@ -229,7 +276,8 @@ func HasRepoHooks(repoRoot string) bool {
 // InstallGlobalHooks writes machine-wide hook config for every agent whose
 // home directory exists (detection-gated: this is about what is installed on
 // *this* machine, unlike the committed repo files). Plain commands — shale is
-// on this machine's PATH, the user just ran it. Returns the paths changed.
+// on this machine's PATH, the user just ran it — but the same per-agent shapes
+// as the repo files. Returns the paths changed.
 func InstallGlobalHooks() ([]string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
@@ -239,7 +287,7 @@ func InstallGlobalHooks() ([]string, error) {
 
 	if dirExists(filepath.Join(home, ".claude")) {
 		p := filepath.Join(home, ".claude", "settings.json")
-		changed, err := InstallClaudeHooks(p)
+		changed, err := InstallClaudeHooks(p) // plain "shale capture claude-code"
 		if err != nil {
 			return written, err
 		}
@@ -247,39 +295,34 @@ func InstallGlobalHooks() ([]string, error) {
 			written = append(written, p)
 		}
 	}
+
+	cursor := cursorEntry(plain("cursor"))
+	codex := nestedEntry(plain("codex"), plain("codex"))
+	copilot := copilotEntry(plain("copilot"), plain("copilot"))
 	type globalTarget struct {
 		dir, path string
 		top       map[string]any
 		events    map[string][]any
-	}
-	plain := func(adapter string, nested bool) []any {
-		if nested {
-			return []any{map[string]any{"type": "command", "command": "shale capture " + adapter}}
-		}
-		return []any{map[string]any{"command": "shale capture " + adapter}}
 	}
 	targets := []globalTarget{
 		{
 			dir: filepath.Join(home, ".cursor"), path: filepath.Join(home, ".cursor", "hooks.json"),
 			top: map[string]any{"version": 1},
 			events: map[string][]any{
-				"sessionStart": plain("cursor", false), "beforeSubmitPrompt": plain("cursor", false),
-				"postToolUse": plain("cursor", false), "afterFileEdit": plain("cursor", false),
-				"sessionEnd": plain("cursor", false),
+				"sessionStart": cursor, "beforeSubmitPrompt": cursor, "postToolUse": cursor,
+				"afterFileEdit": cursor, "sessionEnd": cursor,
 			},
 		},
 		{
 			dir: filepath.Join(home, ".codex"), path: filepath.Join(home, ".codex", "hooks.json"),
 			events: map[string][]any{
-				"SessionStart": plain("codex", false), "UserPromptSubmit": plain("codex", false),
-				"PostToolUse": plain("codex", false), "Stop": plain("codex", false),
+				"SessionStart": codex, "UserPromptSubmit": codex, "PostToolUse": codex, "Stop": codex,
 			},
 		},
 		{
 			dir: filepath.Join(home, ".copilot"), path: filepath.Join(home, ".copilot", "hooks", "shale.json"),
 			events: map[string][]any{
-				"sessionStart": plain("copilot", true), "userPromptSubmitted": plain("copilot", true),
-				"postToolUse": plain("copilot", true), "sessionEnd": plain("copilot", true),
+				"sessionStart": copilot, "userPromptSubmitted": copilot, "postToolUse": copilot, "sessionEnd": copilot,
 			},
 		},
 	}

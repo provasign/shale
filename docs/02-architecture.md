@@ -302,12 +302,14 @@ sh 'shale render --pr ${env.CHANGE_ID}'   // CHANGE_ID set by the GitHub/GitLab 
 
 **Why no checkout, and how fork PRs work (Problem 3, precisely):**
 
-1. The contributor forks. The fork already carries `.shale/` scaffold and the
-   workflow file (committed upstream). Claude Code hooks are **global
-   per-machine** — a contributor who has run `shale init` anywhere is already
-   capturing; at most they run `shale init --hooks-only` once for the
-   pre-push hook. **No upstream registration, no connect step, no token
-   exchange** — committed evidence files are why (ADR D3).
+1. The contributor forks. The fork already carries `.shale/` scaffold, the
+   workflow file, steering prompt, and repo-level hook config (committed
+   upstream). If `shale` is on the contributor's `PATH` and their agent trusts
+   repo hooks, capture starts automatically; otherwise the hook silently no-ops
+   and the steering + git fallback still produce honest evidence. Contributors
+   may run `shale init --global` for machine-wide capture, but there is **no
+   upstream registration, no connect step, no token exchange** — committed
+   evidence files are why (ADR D3).
 2. They push to their fork; shale files ride along; they open a PR to upstream.
 3. On GitHub, fork-PR `pull_request` events get a **read-only** `GITHUB_TOKEN`
    — it cannot post comments or Check Runs. We therefore use

@@ -141,6 +141,7 @@ func TestInstallRepoHooksAllAgentsGuardedIdempotent(t *testing.T) {
 			t.Errorf("%s is not valid JSON", rel)
 		}
 	}
+	assertRepoHookShapes(t, root)
 	if !HasRepoHooks(root) {
 		t.Fatal("HasRepoHooks false after install")
 	}
@@ -150,6 +151,66 @@ func TestInstallRepoHooksAllAgentsGuardedIdempotent(t *testing.T) {
 	if err != nil || len(written2) != 0 {
 		t.Fatalf("re-run wrote %v (err %v)", written2, err)
 	}
+}
+
+func assertRepoHookShapes(t *testing.T, root string) {
+	t.Helper()
+
+	read := func(rel string) map[string]any {
+		t.Helper()
+		raw, err := os.ReadFile(filepath.Join(root, rel))
+		if err != nil {
+			t.Fatalf("read %s: %v", rel, err)
+		}
+		var doc map[string]any
+		if err := json.Unmarshal(raw, &doc); err != nil {
+			t.Fatalf("parse %s: %v", rel, err)
+		}
+		return doc
+	}
+
+	// Copilot's repo format is flat handlers with explicit per-shell fields.
+	copilot := read(filepath.Join(".github", "hooks", "shale.json"))
+	postToolUse := hookEntries(t, copilot, "postToolUse")
+	copilotHandler := postToolUse[0].(map[string]any)
+	if _, ok := copilotHandler["command"]; ok {
+		t.Fatalf("copilot repo hook must not use cross-platform command fallback: %#v", copilotHandler)
+	}
+	if bash, _ := copilotHandler["bash"].(string); !strings.Contains(bash, "command -v shale") || !strings.Contains(bash, "|| true") {
+		t.Fatalf("copilot bash guard is not fail-open: %#v", copilotHandler)
+	}
+	if ps, _ := copilotHandler["powershell"].(string); !strings.Contains(ps, "Get-Command shale") {
+		t.Fatalf("copilot powershell guard missing: %#v", copilotHandler)
+	}
+
+	// Codex's documented JSON shape is event -> matcher group -> hooks -> command handler.
+	codex := read(filepath.Join(".codex", "hooks.json"))
+	codexGroups := hookEntries(t, codex, "PostToolUse")
+	codexGroup := codexGroups[0].(map[string]any)
+	handlers, ok := codexGroup["hooks"].([]any)
+	if !ok || len(handlers) != 1 {
+		t.Fatalf("codex hook must use nested matcher-group shape: %#v", codexGroup)
+	}
+	codexHandler := handlers[0].(map[string]any)
+	if command, _ := codexHandler["command"].(string); !strings.Contains(command, "command -v shale") || !strings.Contains(command, "|| true") {
+		t.Fatalf("codex POSIX guard is not fail-open: %#v", codexHandler)
+	}
+	if win, _ := codexHandler["commandWindows"].(string); !strings.Contains(win, "where shale") || !strings.Contains(win, "|| ver >NUL") {
+		t.Fatalf("codex Windows guard is not fail-open: %#v", codexHandler)
+	}
+}
+
+func hookEntries(t *testing.T, doc map[string]any, event string) []any {
+	t.Helper()
+	hooks, ok := doc["hooks"].(map[string]any)
+	if !ok {
+		t.Fatalf("missing hooks object: %#v", doc)
+	}
+	entries, ok := hooks[event].([]any)
+	if !ok || len(entries) == 0 {
+		t.Fatalf("missing hook entries for %s: %#v", event, hooks)
+	}
+	return entries
 }
 
 func TestInstallRepoHooksPreservesForeignEntries(t *testing.T) {

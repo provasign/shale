@@ -62,10 +62,11 @@ Shale gets the "no shale" nudge comment exactly once.
       removable — architecture §3.2a) into every detected agent instruction
       file (CLAUDE.md, AGENTS.md, .cursorrules, .windsurfrules, .clinerules,
       `.github/copilot-instructions.md`, GEMINI.md, `.kiro/steering/`);
-      detect Claude Code (global + project settings) and install hooks
-      idempotently with diff-and-ask on existing config; scaffold `.shale/`
-      (+ README + .gitignore for `local/`); write
-      `.github/workflows/shale.yml`; privacy-mode prompt (default redacted).
+      write guarded repo-level hook config for Claude Code, Copilot, Cursor,
+      and Codex (additive/idempotent, preserving existing config); scaffold
+      `.shale/` (+ README + .gitignore for `local/`); write
+      `.github/workflows/shale.yml`; support `--global` for detection-gated
+      machine-wide hooks; privacy defaults to redacted.
 - [ ] C2. `shale doctor`: checks steering prompt present in at least one
       instruction file, hooks present, events flowing (last capture
       timestamp), workflow file present, finalize freshness; one actionable

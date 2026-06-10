@@ -1,7 +1,8 @@
 # Shale — Agent hook mechanisms & the activation model
 
 How Shale's mechanical tier (ADR D4 tier 2) wires into each agent, where each
-agent reads hook config, and how a single global install is gated repo-by-repo.
+agent reads hook config, and how repo-level wiring activates capture per repo
+while optional global hooks remain available for individual developers.
 This doc backs the MVP 2 adapter work (implementation plan F1–F3) and the
 `shale init` redesign below.
 
@@ -165,11 +166,12 @@ So the user's intuition is exactly right: **the steering prompt is already the
 per-repo activation for the universal tier.** A global agent install does
 nothing in a repo until that repo carries the steering block.
 
-### 3.2 Mechanical tier — gated by `.shale/` presence (already repo-level)
+### 3.2 Mechanical tier — gated by repo config and `.shale/`
 
-Today the Claude Code hook is installed **globally** (`~/.claude/settings.json`)
-so it fires for *every* Claude Code session on the machine. It does nothing
-unless the repo opted in. From `capture_command.go`:
+The default install is now repo-level hook config, so hooks only exist in repos
+that opted in. Optional global hooks (`shale init --global`) are still
+self-gated: they can fire for any session on the machine, but do nothing unless
+the repo opted in. From `capture_command.go`:
 
 ```go
 // Only capture into repos that opted in (have a .shale/ scaffold).
@@ -178,16 +180,16 @@ if _, err := os.Stat(filepath.Join(root, ".shale")); err != nil {
 }
 ```
 
-So even with a global hook, **activation is the presence of `.shale/` in the
-repo**. Clone a repo without `.shale/`, the global hook fires and immediately
-no-ops. Run `shale init` in a repo (creating `.shale/`), and the same global
-hook starts capturing. The global install is already self-gating per repo.
+So even with an optional global hook, **activation is the presence of `.shale/`
+in the repo**. Clone a repo without `.shale/`, the global hook fires and
+immediately no-ops. Run `shale init` in a repo (creating `.shale/`), and the
+same global hook starts capturing. Global installs are self-gating per repo.
 
-### 3.3 The upgrade: make the mechanical tier repo-level too
+### 3.3 Repo-level mechanical tier
 
-Given §2.3 (every agent supports repo-level hook config), we can drop the global
-install entirely and put the hook config **in the repo**, next to the steering
-prompt and the `.shale/` scaffold:
+Given §2.3 (every agent supports repo-level hook config), the default install
+puts hook config **in the repo**, next to the steering prompt and the `.shale/`
+scaffold:
 
 ```
 repo/
@@ -245,11 +247,11 @@ fixtures are recorded and its trust UX is documented.
 
 ## 4. `shale init` redesign — least friction
 
-### 4.1 Current behavior
+### 4.1 Pre-v0.1.7 behavior
 
-`init_command.go` today: writes steering to detected instruction files, installs
-Claude hooks **globally**, scaffolds `.shale/` + workflow, installs the pre-push
-hook. Only Claude Code, only global, no detection beyond steering files.
+Earlier builds wrote steering to detected instruction files, installed Claude
+hooks **globally**, scaffolded `.shale/` + workflow, and installed the pre-push
+hook. Only Claude Code had hook wiring, and it was only global.
 
 ### 4.2 Target behavior — repo-level by default, three modes
 
@@ -303,10 +305,11 @@ unchanged).
 Two command forms, by audience:
 
 - **Committed (repo) files** — guarded:
-  `command -v shale >/dev/null 2>&1 && shale capture <agent> || true`
-  (POSIX; Codex entries also carry `commandWindows` with the `where`-based
-  cmd.exe variant). These run on machines we know nothing about; silence is
-  mandatory.
+  every handler first checks for `shale` and exits successfully if it is
+  missing. The exact guard is agent/shell-specific: Claude/Cursor use the
+  POSIX form, Copilot emits explicit `bash` and `powershell` handlers, and
+  Codex emits nested matcher groups with `command` plus `commandWindows`.
+  These run on machines we know nothing about; silence is mandatory.
 - **Global (`--global`) files** — plain: `shale capture <agent>`. The user just
   ran the binary on this machine; the guard would only obscure.
 
@@ -348,16 +351,23 @@ a *silent no-op*, not a per-event error:
 
 ```jsonc
 // .claude/settings.json (committed)
-"command": "command -v shale >/dev/null 2>&1 && shale capture claude-code"
+"command": "command -v shale >/dev/null 2>&1 && shale capture claude-code || true"
 ```
 
 The hook stays silently inert until the contributor installs `shale`, then
 activates automatically — no errors, no noise, nothing to explain. This is the
 difference between repo-level hooks being pleasant and being a support burden.
-(Portability: this is the POSIX form. Where the agent's config exposes per-OS
-command fields — VS Code Copilot's `windows`/`linux`/`osx` keys — emit a
-`where shale >NUL 2>&1 && …` variant for Windows; Codex hooks are unix-only so
-no variant is needed there.)
+Portability details are implemented per vendor shape:
+
+- Claude Code / Claude-format VS Code hooks: one POSIX command. Claude Code on
+  Windows runs hooks through Git Bash by default; fixture-test this per release.
+- Copilot repo hooks: explicit `bash` and `powershell` fields, avoiding the
+  cross-platform `command` fallback that would copy a POSIX string into
+  PowerShell.
+- Codex hooks: documented nested matcher-group shape with `commandWindows`; the
+  Windows guard is `where shale >NUL 2>&1 && shale capture codex || ver >NUL`.
+- Cursor: one `command` field; Windows shell semantics still need fixture
+  confirmation before the Cursor adapter ships.
 
 **Layer 2 — steering tells the agent to prompt the developer (no auto-install).**
 The steering block is read by the *agent*, which detects the missing binary —
@@ -392,9 +402,9 @@ Two deliberate choices:
   echo …` means a missing binary at push time skips finalize and lets the push
   through (`initx/hooks.go`);
 - the **PR card nudge** is the discovery surface — a PR with no evidence renders
-  "No shale for this PR … `brew install shale && shale init`" (`render.Nudge`),
-  so anyone who slips through every other layer still sees exactly what to do,
-  on the PR itself.
+  "No shale for this PR … install Shale from GitHub Releases and run
+  `shale init`" (`render.Nudge`), so anyone who slips through every other layer
+  still sees exactly what to do, on the PR itself.
 
 Optionally, `shale init` can append a short install note to `CONTRIBUTING.md`
 (idempotent, marker-fenced like the steering block) so the human-readable path
@@ -429,7 +439,7 @@ Add this file to the tap repo. The four `sha256` values come from the
 class Shale < Formula
   desc "AI agent PR evidence — capture, verify, render"
   homepage "https://github.com/provasign/shale"
-  version "0.1.6"
+  version "0.1.7"
 
   on_macos do
     if Hardware::CPU.arm?

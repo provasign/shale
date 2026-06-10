@@ -78,7 +78,8 @@ func Nudge() string {
 	return NudgeMarker + `
 ## 🧾 No shale for this PR
 This repo renders agent evidence on PRs. No agent session evidence was found
-for these commits. If you used an AI agent: ` + "`brew install shale && shale init`" + `
+for these commits. If you used an AI agent: install Shale from
+https://github.com/provasign/shale/releases/latest and run ` + "`shale init`" + `
 (5 minutes, no account). If this was hand-written, ignore this — humans don't
 need shale. 🙂
 `
@@ -326,8 +327,6 @@ func writeChecks(b *strings.Builder, shales []*store.Shale) {
 	}
 	b.WriteString("\n*Advisory — CI is authoritative.*\n")
 }
-
-
 
 // sensitiveReason flags paths a security reviewer must see above the fold.
 // Built-in list per architecture §3.4; policy.yaml override is MVP 3.
