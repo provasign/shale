@@ -1,0 +1,33 @@
+version: 2
+project_name: shale
+
+builds:
+  - main: ./cmd/shale
+    binary: shale
+    env: [CGO_ENABLED=0]
+    flags: [-trimpath]
+    ldflags:
+      - -s -w -X github.com/provasign/shale/internal/version.Version={{.Version}}
+    goos: [darwin, linux, windows]
+    goarch: [amd64, arm64]
+
+archives:
+  - formats: [tar.gz]
+    name_template: "{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}"
+    format_overrides:
+      - goos: windows
+        formats: [zip]
+
+checksum:
+  name_template: checksums.txt
+
+release:
+  draft: true
+
+brews:
+  - repository:
+      owner: provasign
+      name: homebrew-tap
+    homepage: https://github.com/provasign/shale
+    description: "Agent PR evidence — intent capture and session evidence rendered on pull requests"
+    license: Apache-2.0

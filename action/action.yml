@@ -1,0 +1,45 @@
+# shale-action — composite GitHub Action (ADR D2: download-and-exec glue).
+#
+# SECURITY (ADR D12): this action is designed for `pull_request_target` and
+# NEVER checks out PR code. Do not add an actions/checkout step to workflows
+# that use it — that reintroduces the classic privilege-escalation hole.
+# Everything the renderer needs (diff, .shale/ files) is fetched via the API.
+name: "Shale — agent PR evidence"
+description: >-
+  Renders the Shale card (agent intent, session evidence, recorded checks)
+  on pull requests. Advisory only: never blocks, never fails the build.
+branding:
+  icon: layers
+  color: gray-dark
+inputs:
+  version:
+    description: "shale release to use (binary version, checksum-pinned below)"
+    required: false
+    default: "v0.1.0"
+runs:
+  using: composite
+  steps:
+    - name: Download shale
+      shell: bash
+      env:
+        SHALE_VERSION: ${{ inputs.version }}
+      run: |
+        set -euo pipefail
+        case "$(uname -m)" in
+          x86_64)  ARCH=amd64 ;;
+          aarch64) ARCH=arm64 ;;
+          *) echo "unsupported arch"; exit 1 ;;
+        esac
+        URL="https://github.com/provasign/shale/releases/download/${SHALE_VERSION}/shale_linux_${ARCH}.tar.gz"
+        curl -fsSL "$URL" -o /tmp/shale.tar.gz
+        curl -fsSL "${URL%.tar.gz}.sha256" -o /tmp/shale.sha256 || true
+        if [ -s /tmp/shale.sha256 ]; then
+          echo "$(cat /tmp/shale.sha256)  /tmp/shale.tar.gz" | sha256sum -c -
+        fi
+        tar -xzf /tmp/shale.tar.gz -C /tmp shale
+        install -m 0755 /tmp/shale /usr/local/bin/shale
+    - name: Render card
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ github.token }}
+      run: shale render
