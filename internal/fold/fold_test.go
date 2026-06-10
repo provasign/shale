@@ -215,13 +215,20 @@ func TestClassifyCommand(t *testing.T) {
 }
 
 func TestNormalizePathRejectsOutsideRepo(t *testing.T) {
-	if got := normalizePath("/repo", "/etc/passwd"); got != "" {
+	repo := t.TempDir() // platform-real absolute root, valid on Windows too
+	if got := normalizePath(repo, filepath.Join(repo, "..", "passwd")); got != "" {
 		t.Fatalf("path outside repo accepted: %q", got)
 	}
-	if got := normalizePath("/repo", "/repo/a/b.go"); got != "a/b.go" {
+	if got := normalizePath(repo, "/etc/passwd"); got != "" {
+		t.Fatalf("rooted path accepted: %q", got)
+	}
+	if got := normalizePath(repo, "../escape.go"); got != "" {
+		t.Fatalf("relative path escaping the repo accepted: %q", got)
+	}
+	if got := normalizePath(repo, filepath.Join(repo, "a", "b.go")); got != "a/b.go" {
 		t.Fatalf("got %q", got)
 	}
-	if got := normalizePath("/repo", "a/b.go"); got != "a/b.go" {
+	if got := normalizePath(repo, "a/b.go"); got != "a/b.go" {
 		t.Fatalf("got %q", got)
 	}
 }

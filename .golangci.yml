@@ -5,6 +5,24 @@ linters:
     - misspell
     - unconvert
     - unparam
+  settings:
+    errcheck:
+      # Diagnostic prints to stdout/stderr/strings.Builder and deferred
+      # closes: the error is either meaningless or there is nothing to do
+      # with it — shale is fail-open by design (ADR D6).
+      exclude-functions:
+        - fmt.Fprint
+        - fmt.Fprintf
+        - fmt.Fprintln
+        - (io.Closer).Close
+        - (*os.File).Close
+  exclusions:
+    rules:
+      # Test helpers writing fixtures: a failed write surfaces as a failed
+      # assertion immediately after.
+      - path: _test\.go
+        linters:
+          - errcheck
 issues:
   max-issues-per-linter: 0
   max-same-issues: 0

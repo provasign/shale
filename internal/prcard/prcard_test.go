@@ -97,6 +97,7 @@ func TestRunHappyPath(t *testing.T) {
 		contents: map[string][]byte{
 			".shale/SESS01.yaml":           shaleBytes(t, s),
 			".shale/transcripts/SESS01.md": transcript,
+			".shale/config.yaml":           []byte("privacy: redacted\n"),
 		},
 		commits:  []string{"c1", "c2"},
 		touching: map[string][]string{".shale/SESS01.yaml": {"c2"}},
@@ -110,6 +111,9 @@ func TestRunHappyPath(t *testing.T) {
 	}
 	if len(f.comments) != 1 || !strings.Contains(f.comments[0], "Fix the thing") {
 		t.Fatalf("comments = %v", f.comments)
+	}
+	if strings.Contains(f.comments[0], "invalid shale file") {
+		t.Fatalf("config.yaml must not be parsed as a session file: %s", f.comments[0])
 	}
 	if len(f.statuses) != 1 || !strings.HasPrefix(f.statuses[0], "neutral:") {
 		t.Fatalf("statuses = %v", f.statuses)

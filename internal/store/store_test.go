@@ -190,7 +190,7 @@ func TestReadEventsSkipsMalformedLines(t *testing.T) {
 func TestULIDMonotonicPrefix(t *testing.T) {
 	a := NewULID(time.UnixMilli(1))
 	b := NewULID(time.UnixMilli(1 << 40))
-	if !(a[:10] < b[:10]) {
+	if a[:10] >= b[:10] {
 		t.Fatalf("time prefix not ordered: %s vs %s", a, b)
 	}
 }

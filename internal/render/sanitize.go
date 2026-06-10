@@ -22,9 +22,9 @@ func Sanitize(s string) string {
 		case '&':
 			b.WriteString("&amp;")
 		case '@':
-			b.WriteString("@​")
+			b.WriteString("@\u200b")
 		case '#':
-			b.WriteString("#​")
+			b.WriteString("#\u200b")
 		case '\n', '\t':
 			b.WriteRune(r)
 		default:
@@ -36,5 +36,5 @@ func Sanitize(s string) string {
 	}
 	// Defang [text](target) links: the rendered card shows the text but the
 	// target is severed.
-	return strings.ReplaceAll(b.String(), "](", "]​(")
+	return strings.ReplaceAll(b.String(), "](", "]\u200b(")
 }

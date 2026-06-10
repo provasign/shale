@@ -10,6 +10,25 @@ import (
 	"github.com/provasign/shale/internal/store"
 )
 
+// parseInterspersed parses flags wherever they appear among positional
+// arguments. The documented call shape is `shale intent "<title>" --body
+// "..."`, but stdlib flag stops at the first positional, silently folding
+// trailing flags into the title — agents follow the docs, so accept it.
+func parseInterspersed(fs *flag.FlagSet, args []string) ([]string, error) {
+	var positional []string
+	for {
+		if err := fs.Parse(args); err != nil {
+			return nil, err
+		}
+		args = fs.Args()
+		if len(args) == 0 {
+			return positional, nil
+		}
+		positional = append(positional, args[0])
+		args = args[1:]
+	}
+}
+
 // cmdIntent is the agent-called intent declaration (ADR D4 tier 1). It must
 // be fast (<50 ms) and its single-line ack is the only Shale text that
 // should enter the agent's context.
@@ -17,10 +36,11 @@ func cmdIntent(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("intent", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	body := fs.String("body", "", "why, constraints, approach (2–5 sentences)")
-	if err := fs.Parse(args); err != nil {
+	positional, err := parseInterspersed(fs, args)
+	if err != nil {
 		return 1
 	}
-	title := strings.TrimSpace(strings.Join(fs.Args(), " "))
+	title := strings.TrimSpace(strings.Join(positional, " "))
 	if title == "" {
 		fmt.Fprintln(stderr, `usage: shale intent "<title>" [--body "..."]`)
 		return 1
@@ -55,7 +75,7 @@ func cmdDone(args []string, stdout, stderr io.Writer) int {
 	tokensOut := fs.Int("tokens-out", 0, "completion tokens for the session")
 	model := fs.String("model", "", "model id, as reported by the agent")
 	iterations := fs.Int("iterations", 0, "prompt-response cycles")
-	if err := fs.Parse(args); err != nil {
+	if _, err := parseInterspersed(fs, args); err != nil {
 		return 1
 	}
 

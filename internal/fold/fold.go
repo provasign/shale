@@ -284,7 +284,13 @@ func normalizePath(repoRoot, p string) string {
 		}
 		p = rel
 	}
-	return filepath.ToSlash(filepath.Clean(p))
+	p = filepath.ToSlash(filepath.Clean(p))
+	// A unix-rooted path is not IsAbs on Windows (no volume), and a relative
+	// path may still climb out of the repo — neither is PR evidence.
+	if strings.HasPrefix(p, "/") || p == ".." || strings.HasPrefix(p, "../") {
+		return ""
+	}
+	return p
 }
 
 func contains(xs []string, x string) bool {

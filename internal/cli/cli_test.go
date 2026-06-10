@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -126,6 +127,14 @@ func TestIntentDoneNoteFlow(t *testing.T) {
 	if events[0].Kind != store.KindIntent || events[1].Kind != store.KindCompletion || events[2].Kind != store.KindNote {
 		t.Fatalf("kinds = %s %s %s", events[0].Kind, events[1].Kind, events[2].Kind)
 	}
+	// Flags after the positional title must be parsed, not folded into it —
+	// the documented call shape is `shale intent "<title>" --body "..."`.
+	if events[0].Title != "Add rate limiting" || events[0].Body != "Redis, 10/min" {
+		t.Fatalf("intent parsed wrong: title=%q body=%q", events[0].Title, events[0].Body)
+	}
+	if events[1].Model != "claude-fable-5" || events[1].TokensIn != 1000 {
+		t.Fatalf("done parsed wrong: model=%q tokensIn=%d", events[1].Model, events[1].TokensIn)
+	}
 
 	// Missing title is a usage error.
 	code, _, _ = run(t, "", "intent")
@@ -159,7 +168,7 @@ func TestCaptureFailOpenAlways(t *testing.T) {
 func TestCaptureWritesEvents(t *testing.T) {
 	root := chrepo(t)
 	run(t, "", "init")
-	payload := `{"session_id":"sess-xyz","cwd":"` + root + `","hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_path":"a.go"}}`
+	payload := `{"session_id":"sess-xyz","cwd":` + strconv.Quote(root) + `,"hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_path":"a.go"}}`
 	code, _, _ := run(t, payload, "capture", "claude-code")
 	if code != 0 {
 		t.Fatal("capture failed")
@@ -175,7 +184,7 @@ func TestCaptureWritesEvents(t *testing.T) {
 
 func TestCaptureIgnoresNonShaleRepos(t *testing.T) {
 	root := chrepo(t) // no `shale init` → no .shale/ scaffold
-	payload := `{"session_id":"s","cwd":"` + root + `","hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_path":"a.go"}}`
+	payload := `{"session_id":"s","cwd":` + strconv.Quote(root) + `,"hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_path":"a.go"}}`
 	code, _, _ := run(t, payload, "capture", "claude-code")
 	if code != 0 {
 		t.Fatal("capture failed")
@@ -191,10 +200,10 @@ func TestFinalizeAndRenderLocalEndToEnd(t *testing.T) {
 
 	// Simulate a session: hooks + intent + done.
 	payloads := []string{
-		`{"session_id":"e2e-sess","cwd":"` + root + `","hook_event_name":"SessionStart","model":"claude-fable-5"}`,
-		`{"session_id":"e2e-sess","cwd":"` + root + `","hook_event_name":"UserPromptSubmit","prompt":"add rate limiting"}`,
-		`{"session_id":"e2e-sess","cwd":"` + root + `","hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_path":"ratelimit.go"}}`,
-		`{"session_id":"e2e-sess","cwd":"` + root + `","hook_event_name":"PostToolUse","tool_name":"Bash","tool_input":{"command":"go test ./..."},"tool_response":{"exit_code":0}}`,
+		`{"session_id":"e2e-sess","cwd":` + strconv.Quote(root) + `,"hook_event_name":"SessionStart","model":"claude-fable-5"}`,
+		`{"session_id":"e2e-sess","cwd":` + strconv.Quote(root) + `,"hook_event_name":"UserPromptSubmit","prompt":"add rate limiting"}`,
+		`{"session_id":"e2e-sess","cwd":` + strconv.Quote(root) + `,"hook_event_name":"PostToolUse","tool_name":"Write","tool_input":{"file_path":"ratelimit.go"}}`,
+		`{"session_id":"e2e-sess","cwd":` + strconv.Quote(root) + `,"hook_event_name":"PostToolUse","tool_name":"Bash","tool_input":{"command":"go test ./..."},"tool_response":{"exit_code":0}}`,
 	}
 	for _, p := range payloads {
 		if code, _, _ := run(t, p, "capture", "claude-code"); code != 0 {

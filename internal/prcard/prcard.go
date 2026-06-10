@@ -94,6 +94,10 @@ func loadShales(ctx context.Context, f forge.Forge, head string, pr int) ([]*sto
 		if !strings.HasSuffix(p, ".yaml") {
 			continue
 		}
+		if path.Base(p) == "config.yaml" {
+			// Committed repo config (privacy mode), not a session file.
+			continue
+		}
 		raw, err := f.FileContent(ctx, head, p)
 		if err != nil {
 			warnings = append(warnings, fmt.Sprintf("could not fetch %s", p))

@@ -105,6 +105,30 @@ func TestCardSingleSession(t *testing.T) {
 	}
 }
 
+func TestCardIgnoresShaleEvidenceFiles(t *testing.T) {
+	// The evidence files finalize commits must not show up as coverage gaps
+	// — otherwise every clean instrumented PR is flagged.
+	s := sampleShale("a1b2c3d4e5")
+	s.Files = []store.FileTouch{{Path: "main.go", Ops: []string{"edit"}, Via: store.ViaHook}}
+	got := Card(Input{
+		Shales: []*store.Shale{s},
+		PRFiles: []ChangedFile{
+			{Path: "main.go", Status: "modified"},
+			{Path: ".shale/sess01.yaml", Status: "added"},
+			{Path: ".shale/transcripts/sess01.md", Status: "added"},
+		},
+	})
+	if strings.Contains(got, ".shale/") {
+		t.Errorf("evidence files must not appear in the file table:\n%s", got)
+	}
+	if strings.Contains(got, "Coverage gaps") {
+		t.Errorf("evidence files must not count as coverage gaps:\n%s", got)
+	}
+	if !strings.Contains(got, "Changed files (1) — 1 seen in agent sessions, 0 not") {
+		t.Errorf("changed-files count must exclude evidence files:\n%s", got)
+	}
+}
+
 func TestCardMultiSession(t *testing.T) {
 	s2 := sampleShale("f6g7h8i9j0")
 	s2.Agent.Model = "claude-sonnet-4-6"
@@ -216,9 +240,9 @@ func TestSanitize(t *testing.T) {
 		"plain text":     "plain text",
 		"<b>x</b>":       "&lt;b&gt;x&lt;/b&gt;",
 		"a & b":          "a &amp; b",
-		"hi @user":       "hi @​user",
-		"fix #12":        "fix #​12",
-		"[t](http://x)":  "[t]​(http://x)",
+		"hi @user":       "hi @\u200buser",
+		"fix #12":        "fix #\u200b12",
+		"[t](http://x)":  "[t]\u200b(http://x)",
 		"ctrl\x01char":   "ctrlchar",
 		"keep\nnewlines": "keep\nnewlines",
 	}

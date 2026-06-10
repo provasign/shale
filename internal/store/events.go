@@ -170,7 +170,7 @@ func ArchiveSession(repoRoot, sessionID string) error {
 	}
 	cur := filepath.Join(LocalDir(repoRoot), "current")
 	if raw, err := os.ReadFile(cur); err == nil && strings.TrimSpace(string(raw)) == sessionID {
-		os.Remove(cur)
+		_ = os.Remove(cur) // best-effort: a stale pointer is harmless
 	}
 	return nil
 }

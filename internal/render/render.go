@@ -44,6 +44,18 @@ func Card(in Input) string {
 	if len(in.Shales) == 0 {
 		return Nudge()
 	}
+	// Shale's own evidence files ride along with every instrumented PR; they
+	// are bookkeeping, not agent work product. Counting them as "changed with
+	// no session evidence" would put a coverage gap on every clean PR.
+	// Tamper detection (D7) still watches them upstream.
+	kept := in.PRFiles[:0:0]
+	for _, cf := range in.PRFiles {
+		if cf.Path == ".shale" || strings.HasPrefix(cf.Path, ".shale/") {
+			continue
+		}
+		kept = append(kept, cf)
+	}
+	in.PRFiles = kept
 	var b strings.Builder
 	b.WriteString(CommentMarker + "\n")
 	writeHeader(&b, in.Shales)

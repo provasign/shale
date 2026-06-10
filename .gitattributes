@@ -1,0 +1,3 @@
+# Force LF on checkout everywhere: the render golden files are compared
+# byte-for-byte in tests, and CRLF checkout on Windows breaks them.
+* text=auto eol=lf
