@@ -175,6 +175,24 @@ developer prompts are settled. Today, prompt-derived data never leaves your
 laptop: prompts stay in gitignored `.shale/local/`, and only the prompt
 count and an intent integrity hash appear in committed evidence.
 
+## Uninstalling
+
+Leaving must be as easy as trying:
+
+```sh
+shale uninstall          # this machine: pre-push hook, global agent hooks, local state
+shale uninstall --repo   # …plus the committed files (steering, hook configs, workflow, .shale/) — then commit
+brew uninstall shale     # the binary
+```
+
+`uninstall` mirrors `init`'s never-destroy rule in reverse: it removes only
+what Shale wrote. Instruction files keep your content (just the fenced shale
+block is cut), foreign hook entries survive, and a hook manager's pre-push
+file is never edited — you remove the chained line yourself. Without
+`--repo`, teammates who keep using Shale are unaffected; and even before any
+uninstall, the committed hooks are inert for anyone without `shale` on their
+PATH — `brew uninstall shale` alone silences everything for you personally.
+
 ## Related projects
 
 | Project | Role | License |

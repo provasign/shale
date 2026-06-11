@@ -26,6 +26,7 @@ Usage:
   shale render --local | --pr N  render the card (terminal preview | post to PR)
   shale note "<text>"            manual annotation escape hatch
   shale doctor                   diagnose the setup
+  shale uninstall [--repo]       remove Shale from this machine (--repo: also the committed files)
   shale version                  print version
 `
 
@@ -52,6 +53,8 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return cmdNote(args[1:], stdout, stderr)
 	case "doctor":
 		return cmdDoctor(stdout)
+	case "uninstall":
+		return cmdUninstall(args[1:], stdout, stderr)
 	case "version", "--version", "-v":
 		fmt.Fprintln(stdout, "shale", version.Version)
 		return 0

@@ -49,6 +49,13 @@ their agents are wired on `git clone` — there is no per-developer setup:
 | `.github/workflows/shale.yml` | Renders the card on PRs — API only, never a checkout |
 | `.git/hooks/pre-push` (local) | `shale finalize --auto-commit` — folds and commits evidence before push, fail-open |
 
+`shale uninstall` reverses all of it under the same never-destroy rule in
+the other direction: only what Shale wrote is removed (fenced steering
+blocks cut, `shale capture` hook entries filtered out, exact-match pre-push
+script deleted). Default scope is this machine; `--repo` also removes the
+committed surface for a commit. Foreign hook entries, user instruction
+text, and hook-manager files always survive.
+
 Any change that adds a setup step, an account, a server round-trip, or a
 question without a default is wrong by definition.
 

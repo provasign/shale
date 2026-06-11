@@ -291,6 +291,23 @@ prompt count and an intent integrity hash.
 
 ---
 
+## Uninstalling
+
+```sh
+shale uninstall          # this machine: pre-push hook, global agent hooks, .shale/local/
+shale uninstall --repo   # …plus the committed files — commit the removal for your team
+brew uninstall shale     # the binary
+```
+
+Only what Shale wrote is removed: your instruction-file content survives
+(the fenced block is cut), foreign hook entries are preserved, and a hook
+manager's pre-push file is never edited (remove the chained
+`shale finalize` line yourself). Shortcut: `brew uninstall shale` alone
+makes every committed hook silently inert for you — that's the self-guarding
+design working in reverse.
+
+---
+
 ## Next steps
 
 - [CI integrations](ci-integrations.md) — Jenkins, CircleCI, GitLab CI, GitHub Enterprise Server
