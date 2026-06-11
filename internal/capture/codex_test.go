@@ -70,6 +70,22 @@ func TestParseCodexApplyPatchTouches(t *testing.T) {
 	}
 }
 
+func TestParseCodexApplyPatchPayloadVariants(t *testing.T) {
+	cases := []string{
+		`{"patch":"*** Begin Patch\n*** Update File: README.md\n@@\n+note\n*** End Patch\n"}`,
+		`{"input":"*** Begin Patch\n*** Update File: README.md\n@@\n+note\n*** End Patch\n"}`,
+		`{"cmd":"*** Begin Patch\n*** Update File: README.md\n@@\n+note\n*** End Patch\n"}`,
+		`"*** Begin Patch\n*** Update File: README.md\n@@\n+note\n*** End Patch\n"`,
+	}
+	for _, toolInput := range cases {
+		raw := []byte(`{"session_id":"s","cwd":"/w","hook_event_name":"PostToolUse","tool_name":"functions.apply_patch","tool_input":` + toolInput + `}`)
+		events, _, _ := ParseCodex(raw, now)
+		if len(events) != 1 || events[0].Kind != store.KindFileTouch || events[0].Path != "README.md" || events[0].Op != "edit" {
+			t.Fatalf("tool_input %s produced %+v", toolInput, events)
+		}
+	}
+}
+
 func TestParseCodexStop(t *testing.T) {
 	events, _, _ := ParseCodex(codexFixture(t, "stop.json"), now)
 	if len(events) != 1 || events[0].Kind != store.KindSessionEnd {

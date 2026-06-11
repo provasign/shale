@@ -23,10 +23,16 @@ type codexPayload struct {
 }
 
 type codexToolInput struct {
-	FilePath     string `json:"file_path"`
-	NotebookPath string `json:"notebook_path"`
-	Command      string `json:"command"`
-	Patch        string `json:"patch"`
+	FilePath      string `json:"file_path"`
+	FilePathCamel string `json:"filePath"`
+	Path          string `json:"path"`
+	NotebookPath  string `json:"notebook_path"`
+	Command       string `json:"command"`
+	Patch         string `json:"patch"`
+	Input         string `json:"input"`
+	Content       string `json:"content"`
+	Cmd           string `json:"cmd"`
+	Text          string `json:"text"`
 }
 
 type codexToolResponse struct {
@@ -75,13 +81,32 @@ func ParseCodex(raw []byte, now time.Time) (events []store.Event, sessionID, cwd
 				_ = json.Unmarshal(p.ToolResponse, &resp)
 				events = append(events, store.Event{Kind: store.KindCommand, At: at, Cmd: in.Command, ExitCode: resp.ExitCode})
 			}
-		case "apply_patch":
-			events = append(events, codexPatchTouches(in.Patch, at)...)
+		default:
+			if isApplyPatchTool(p.ToolName) {
+				events = append(events, codexPatchTouches(codexPatchText(p.ToolInput), at)...)
+			}
 		}
 	case "Stop":
 		events = append(events, store.Event{Kind: store.KindSessionEnd, At: at})
 	}
 	return events, sessionID, cwd
+}
+
+func isApplyPatchTool(name string) bool {
+	return strings.Contains(strings.ToLower(name), "apply_patch")
+}
+
+func codexPatchText(raw json.RawMessage) string {
+	if len(raw) == 0 {
+		return ""
+	}
+	var text string
+	if err := json.Unmarshal(raw, &text); err == nil {
+		return text
+	}
+	var in codexToolInput
+	_ = json.Unmarshal(raw, &in)
+	return firstNonEmpty(in.Patch, in.Input, in.Content, in.Cmd, in.Command, in.Text)
 }
 
 func codexPatchTouches(patch string, at time.Time) []store.Event {
