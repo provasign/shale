@@ -137,9 +137,33 @@ completion, cost, and git-derived file evidence marked `◐ not hook-verified`.
 
 Evidence lives in your repo, the card renders in your CI with your
 `GITHUB_TOKEN` — Shale makes no network calls from your laptop and has no
-telemetry, accounts, or server. Agent-authored text (intent, completion
-notes, recorded commands) passes a secret-redaction pass before anything is
-persisted (`shale init --privacy full|redacted|hash-only`).
+telemetry, accounts, or server.
+
+**What Shale records** (committed to `.shale/<session>.yaml`): the agent's
+intent, the **paths** of files it touched and the operation (write/edit/delete),
+the commands it ran and their exit codes, and the model, token count, cost,
+and timing. That's it.
+
+**What Shale never captures:**
+
+- **File contents or diffs** — Shale records *that* `auth.go` was edited, never
+  *what* changed. The diff is already in your PR; Shale doesn't duplicate it.
+- **Gitignored files** — a touch whose path your repo ignores (`.env`,
+  `*.pem`, `secrets/`, anything in `.gitignore`) is dropped at finalize. Those
+  paths are where secrets live, so they never reach committed evidence.
+- **Files outside the repo** — an absolute path that resolves outside the repo
+  root is dropped; it isn't PR evidence.
+- **Raw prompt text** — see below.
+
+**What Shale masks.** Agent-authored text (intent, completion notes, recorded
+commands) passes a secret-redaction pass before anything is persisted
+(`shale init --privacy full|redacted|hash-only`). The ruleset covers vendor
+token shapes (AWS, GitHub, GitLab, Anthropic, OpenAI, Slack, Stripe, Google,
+npm, JWTs, private keys) plus the command-line forms agents actually use:
+env-prefix assignments (`API_KEY=… ./run`), secret flags (`--token=…`,
+`--password …`), and bearer headers. Commands stay in the evidence — the
+classification (`test`/`lint`/`scan`/`build`) is the point — only the secret
+*values* are masked.
 
 **Raw prompt capture is built but switched off.** Shale can also capture the
 raw prompts developers type and redact them (secrets, credentials, tokens)

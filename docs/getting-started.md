@@ -248,6 +248,14 @@ commands with exit codes, model/token/cost metadata, and timestamps —
 agent-authored text passes a secret-redaction pass first. Editing evidence
 after capture puts a tamper warning on the card.
 
+**Never recorded:** file contents or diffs (only the path and operation),
+gitignored files (`.env`, `*.pem`, `secrets/` — dropped at finalize, since
+that's where secrets live), and files outside the repo root. **Masked before
+persistence:** secrets in intent/notes/commands — vendor token shapes plus
+command-line forms (`API_KEY=… ./run`, `--token=…`, `--password …`, bearer
+headers). Commands themselves stay on the card; only the secret values are
+masked.
+
 **Raw prompts never leave your laptop.** Shale can capture and redact the
 prompts developers type, but committing prompt transcripts is **disabled in
 the product** (a build-time flag, not configurable) until the redaction
