@@ -1,5 +1,5 @@
 <!-- shale-card -->
-## <img src="https://provasign.dev/assets/images/logo-icon.png" width="20" height="20" alt=""> Shale · 2 sessions · claude-code (claude-fable-5, claude-sonnet-4-6)
+## <picture><source media="(prefers-color-scheme: dark)" srcset="https://provasign.dev/assets/images/logo-card-dark.png"><img src="https://provasign.dev/assets/images/logo-card-light.png" width="20" height="20" alt=""></picture> Shale · 2 sessions · claude-code (claude-fable-5, claude-sonnet-4-6)
 94k tokens · ~$0.94 · 6 iterations · 77 min
 
 ### Intent

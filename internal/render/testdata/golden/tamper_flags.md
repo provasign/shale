@@ -1,5 +1,5 @@
 <!-- shale-card -->
-## <img src="https://provasign.dev/assets/images/logo-icon.png" width="20" height="20" alt=""> Shale · 1 session · claude-code (claude-fable-5)
+## <picture><source media="(prefers-color-scheme: dark)" srcset="https://provasign.dev/assets/images/logo-card-dark.png"><img src="https://provasign.dev/assets/images/logo-card-light.png" width="20" height="20" alt=""></picture> Shale · 1 session · claude-code (claude-fable-5)
 claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 
 > ⚠️ transcript hash mismatch for session a1b2c3 — treat intent text as unverified

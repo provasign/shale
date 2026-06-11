@@ -64,7 +64,7 @@ the `shale` binary on your `PATH`.
 
 This is an actual card from [a live demo PR](https://github.com/provasign/shale-test-bed/pull/1) — rendered by Shale, unedited:
 
-> ### <img src="https://provasign.dev/assets/images/logo-icon.png" width="18" height="18" alt=""> Shale · 1 session · claude-code (claude-fable-5)
+> ### <picture><source media="(prefers-color-scheme: dark)" srcset="https://provasign.dev/assets/images/logo-card-dark.png"><img src="https://provasign.dev/assets/images/logo-card-light.png" width="18" height="18" alt=""></picture> Shale · 1 session · claude-code (claude-fable-5)
 > claude-fable-5 · 60k tokens · ~$0.67 · 2 iterations · < 1 min
 >
 > #### Intent

@@ -75,9 +75,11 @@ func Card(in Input) string {
 }
 
 // logoIcon is the Shale strata mark, rendered inline in the card heading.
-// GitHub proxies the image through camo and caches it; if the host is ever
-// unreachable the alt text keeps the heading readable.
-const logoIcon = `<img src="https://provasign.dev/assets/images/logo-icon.png" width="20" height="20" alt="">`
+// The <picture> element serves a contrast-lifted variant on GitHub's dark
+// themes (both PNGs are transparent — no white chip in dark mode). GitHub
+// proxies the images through camo and caches them; if the host is ever
+// unreachable the empty alt keeps the heading readable.
+const logoIcon = `<picture><source media="(prefers-color-scheme: dark)" srcset="https://provasign.dev/assets/images/logo-card-dark.png"><img src="https://provasign.dev/assets/images/logo-card-light.png" width="20" height="20" alt=""></picture>`
 
 // Nudge is the exact no-shale copy from docs/product.md §3.
 func Nudge() string {
