@@ -166,6 +166,32 @@ bootstrap step.
 > needs to approve the `shale.yml` workflow once after it lands on `main`.
 > This is a one-time step done in your org's Actions settings.
 
+### Repos that already use hooks or other PR bots
+
+`shale init` is non-destructive on an existing repo: scaffold files that
+already exist are skipped (your `.shale/config.yaml` privacy choice is never
+overwritten), steering blocks are appended to existing instruction files, and
+agent hook configs are merged additively.
+
+**Other PR comment bots are fine.** Shale finds its own comment by a hidden
+marker and edits only that one — it never touches comments posted by other
+tools. Their card and Shale's card coexist as separate comments.
+
+**Existing pre-push hooks are the one thing to check.** Shale never clobbers
+a hook it didn't write. `shale init` honors `core.hooksPath` (husky,
+lefthook), so the hook lands where git will actually run it — but if a hook
+manager already owns the `pre-push` file, init prints
+`! Pre-push hook skipped` and you chain Shale in yourself:
+
+```sh
+shale finalize --auto-commit || echo "shale: finalize failed (push continues)" >&2
+```
+
+Add that line to `.husky/pre-push` (husky), a `pre-push` job in
+`lefthook.yml` (lefthook), or your existing `.git/hooks/pre-push`. Without
+it, finalize never runs on push and PRs get the "No shale for this PR" nudge
+instead of a card. `shale doctor` reports the exact hook location it checks.
+
 ### Options
 
 ```sh

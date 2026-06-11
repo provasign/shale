@@ -358,6 +358,46 @@ func TestInstallPrePushHook(t *testing.T) {
 	}
 }
 
+func TestInstallPrePushHookHonorsHooksPath(t *testing.T) {
+	root := t.TempDir()
+	for _, args := range [][]string{
+		{"init", "-b", "main"},
+		{"config", "core.hooksPath", ".husky"},
+	} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = root
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+
+	skipped, err := InstallPrePushHook(root)
+	if err != nil || skipped {
+		t.Fatalf("skipped=%v err=%v", skipped, err)
+	}
+	// Writing to .git/hooks here would produce a hook git never runs.
+	if _, err := os.Stat(filepath.Join(root, ".git", "hooks", "pre-push")); !os.IsNotExist(err) {
+		t.Fatal("hook written to .git/hooks despite core.hooksPath override")
+	}
+	raw, err := os.ReadFile(filepath.Join(root, ".husky", "pre-push"))
+	if err != nil || !strings.Contains(string(raw), "shale finalize --auto-commit") {
+		t.Fatalf("hook at core.hooksPath: %s (%v)", raw, err)
+	}
+
+	// A manager-owned hook in the override dir is never clobbered.
+	foreign := "#!/bin/sh\nnpx lint-staged\n"
+	os.WriteFile(filepath.Join(root, ".husky", "pre-push"), []byte(foreign), 0o755)
+	if skipped, err = InstallPrePushHook(root); err != nil || !skipped {
+		t.Fatalf("foreign manager hook: skipped=%v err=%v", skipped, err)
+	}
+
+	// Doctor must diagnose the same location install used.
+	hp := PrePushHookPath(root)
+	if filepath.Base(filepath.Dir(hp)) != ".husky" {
+		t.Fatalf("PrePushHookPath = %q, want under .husky", hp)
+	}
+}
+
 func TestDoctor(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("HOME", t.TempDir()) // isolate ClaudeSettingsPath

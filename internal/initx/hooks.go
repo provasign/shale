@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/provasign/shale/internal/gitx"
 )
 
 // claudeHookEvents are the Claude Code hook events Shale captures and the
@@ -142,22 +144,33 @@ shale finalize --auto-commit || echo "shale: finalize failed (push continues)" >
 exit 0
 `
 
-// InstallPrePushHook writes .git/hooks/pre-push. An existing hook that is
-// not ours is left untouched (returned as skipped=true) — we never clobber
+// PrePushHookPath returns where this repo's pre-push hook actually lives:
+// the core.hooksPath override when set (husky/lefthook repos — git never
+// runs .git/hooks there), .git/hooks otherwise. Shared with doctor so
+// install and diagnosis can never disagree about the location.
+func PrePushHookPath(repoRoot string) string {
+	if dir := gitx.HooksPath(repoRoot); dir != "" {
+		return filepath.Join(dir, "pre-push")
+	}
+	return filepath.Join(repoRoot, ".git", "hooks", "pre-push")
+}
+
+// InstallPrePushHook writes the pre-push hook into the repo's effective
+// hooks directory (honoring core.hooksPath). An existing hook that is not
+// ours is left untouched (returned as skipped=true) — we never clobber
 // user hooks.
 func InstallPrePushHook(repoRoot string) (skipped bool, err error) {
-	hookDir := filepath.Join(repoRoot, ".git", "hooks")
 	if _, err := os.Stat(filepath.Join(repoRoot, ".git")); err != nil {
 		return true, nil // not a git repo (yet) — doctor will flag it
 	}
-	path := filepath.Join(hookDir, "pre-push")
+	path := PrePushHookPath(repoRoot)
 	if raw, rerr := os.ReadFile(path); rerr == nil {
 		if string(raw) == prePushScript {
 			return false, nil // already ours
 		}
 		return true, nil // someone else's hook — never clobber
 	}
-	if err := os.MkdirAll(hookDir, 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return false, err
 	}
 	return false, os.WriteFile(path, []byte(prePushScript), 0o755)

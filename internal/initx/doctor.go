@@ -51,11 +51,15 @@ func Doctor(repoRoot string) []Check {
 			"REMOVE the checkout step from shale.yml — pull_request_target + checkout of PR code is a privilege-escalation hole")
 	}
 
-	hookPath := filepath.Join(repoRoot, ".git", "hooks", "pre-push")
+	hookPath := PrePushHookPath(repoRoot)
+	hookLoc := hookPath
+	if rel, rerr := filepath.Rel(repoRoot, hookPath); rerr == nil && !strings.HasPrefix(rel, "..") {
+		hookLoc = rel
+	}
 	raw, err := os.ReadFile(hookPath)
 	hookOK := err == nil && strings.Contains(string(raw), "shale finalize")
 	add("pre-push hook installed", hookOK,
-		"run `shale init` (an existing non-shale pre-push hook must call `shale finalize --auto-commit` itself)")
+		fmt.Sprintf("run `shale init` — hook location is %s (honors core.hooksPath); an existing non-shale hook there must call `shale finalize --auto-commit` itself", hookLoc))
 
 	// Events flowing: most recent capture activity, active or archived.
 	add("capture events seen", lastActivity(repoRoot) != "",

@@ -81,6 +81,18 @@ your hook yourself:
 shale finalize --auto-commit || echo "shale: finalize failed (push continues)" >&2
 ```
 
+**Using a hook manager?** `shale init` honors `core.hooksPath`, so the hook
+lands where git will actually run it — on a husky repo that's
+`.husky/pre-push` (a committed file: `git add` it so teammates get it too).
+If the manager already owns that hook file, chain Shale in instead:
+
+- **husky** — append the line above to `.husky/pre-push`
+- **lefthook** — add a `pre-push` job running `shale finalize --auto-commit`
+  to `lefthook.yml`
+- **pre-commit** — add a `repo: local` hook with `stages: [pre-push]`
+
+`shale doctor` reports the exact hook location it checked.
+
 ### `finalize` skipped a session
 
 Already-finalized sessions are archived and skipped — that's idempotency, not

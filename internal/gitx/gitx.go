@@ -88,6 +88,21 @@ func FilesChangedSince(root string, t time.Time) []string {
 	return paths
 }
 
+// HooksPath returns the repo's core.hooksPath override resolved to an
+// absolute path, or "" when unset/unavailable so callers fall back to
+// .git/hooks. Hook managers (husky, lefthook) set this — a hook written to
+// .git/hooks in those repos would never run.
+func HooksPath(root string) string {
+	out, err := run(root, "config", "--type=path", "--get", "core.hooksPath")
+	if err != nil || out == "" {
+		return ""
+	}
+	if !filepath.IsAbs(out) {
+		out = filepath.Join(root, out)
+	}
+	return filepath.Clean(out)
+}
+
 // IgnoredPaths returns the subset of paths that git ignores in this repo.
 // Ignored files (.env, credentials, key material) are exactly where secrets
 // live, so finalize drops them from hook evidence. Best-effort: on any git
