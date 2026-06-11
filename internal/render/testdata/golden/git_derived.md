@@ -1,5 +1,5 @@
 <!-- shale-card -->
-## 🧾 Shale · 1 session · claude-code (claude-fable-5)
+## <img src="https://provasign.dev/assets/images/logo-icon.png" width="20" height="20" alt=""> Shale · 1 session · claude-code (claude-fable-5)
 claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 
 > ℹ️ Session `k1l2m3n4o5` only has git fallback file evidence: Shale saw files change while the session was active, but no agent hook reported those edits. Token and command totals may be incomplete.

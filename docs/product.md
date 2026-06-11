@@ -194,7 +194,17 @@ forbidden change; `shale doctor` screams about it.
 - **Redaction before persistence.** Agent-authored text (intent, notes,
   commands) passes a redaction pass before anything is written, in one of
   three committed modes: `full` · `redacted` (default — secrets/tokens
-  stripped) · `hash-only` (hashes only).
+  stripped) · `hash-only` (hashes only). The ruleset covers vendor token
+  shapes plus command-line forms: env-prefix assignments (`API_KEY=x ./run`),
+  inline and spaced secret flags (`--token=x`, `--password x`), and bearer
+  headers.
+- **Gitignored paths never become evidence.** A hook-reported file touch
+  whose path git ignores (`.env`, credentials, key material — the places
+  secrets live) is dropped at finalize via `git check-ignore`. Paths outside
+  the repo were already rejected (spec rule 3); the tier-3 git fallback
+  cannot resurface ignored files because `git log`/`status` never report
+  them. Best-effort: if git is unavailable, evidence degrades rather than
+  finalize breaking.
 - **Raw prompt transcripts are feature-flagged OFF** (`transcriptsEnabled`
   in `internal/fold`, deliberately not exposed via config, flag, or env).
   The capability exists — prompts-only, redacted, SHA-256-pinned transcripts

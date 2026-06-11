@@ -39,6 +39,13 @@ func New() *Engine {
 		mk("jwt", `\beyJ[0-9A-Za-z_\-]{10,}\.[0-9A-Za-z_\-]{10,}\.[0-9A-Za-z_\-]{5,}\b`),
 		mk("generic-assignment", `(?i)\b(?:api[_\-]?key|secret|passwd|password|token|auth)\b\s*[:=]\s*['"][^'"\s]{8,}['"]`),
 		mk("url-credentials", `\b[a-zA-Z][a-zA-Z0-9+.-]*://[^/\s:@]+:[^@\s]+@`),
+		// Command-line shapes: agent-run commands carry secrets as env
+		// prefixes (API_KEY=x ./run), inline flags (--token=x), spaced flags
+		// (--password x), and auth headers (Bearer x). Over-redacting a
+		// harmless value costs a little card fidelity; leaking costs trust.
+		mk("env-secret", `(?i)\b[A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD|PASSWD|CREDENTIALS?)=[^\s'"]{6,}`),
+		mk("flag-secret", `(?i)(?:^|\s)--[a-z0-9-]*(?:key|token|secret|password|passwd)(?:=|\s+)(?:"[^"]+"|'[^']+'|[^\s'"]+)`),
+		mk("bearer-token", `(?i)\bbearer\s+[0-9A-Za-z._~+/=\-]{16,}`),
 	}}
 }
 
