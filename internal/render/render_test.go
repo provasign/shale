@@ -92,10 +92,11 @@ func TestCardSingleSession(t *testing.T) {
 		"🧾 Shale · 1 session",
 		"47k tokens", "~$0.47", "3 iterations", "38 min",
 		"**Add rate limiting to the login endpoint**",
-		"✅ a1b2c3d4e5",
+		"| `a1b2c3d4e5` | ✅ hook event |",
 		"dependency manifest", "CI config",
 		"Checks recorded locally", "✅ passed",
 		"with evidence",
+		"UTC",
 		CommentMarker,
 	} {
 		if !strings.Contains(got, must) {
@@ -138,8 +139,8 @@ func TestCardMultiSession(t *testing.T) {
 	if !strings.Contains(got, "2 sessions") {
 		t.Error("multi-session count missing")
 	}
-	if !strings.Contains(got, "session `a1b2c3d4e5` · model `claude-fable-5`") ||
-		!strings.Contains(got, "session `f6g7h8i9j0` · model `claude-sonnet-4-6`") {
+	if !strings.Contains(got, "session `a1b2c3d4e5` · agent `claude-code` · model `claude-fable-5` · 47k tokens · ~$0.47") ||
+		!strings.Contains(got, "session `f6g7h8i9j0` · agent `claude-code` · model `claude-sonnet-4-6` · 47k tokens · ~$0.47") {
 		t.Errorf("intent metadata must tie each session to its model:\n%s", got)
 	}
 }
@@ -152,8 +153,30 @@ func TestCardUsesCompletionModelWhenAgentModelMissing(t *testing.T) {
 	if !strings.Contains(got, "Shale · 1 session · claude-code (gpt-5-codex)") {
 		t.Errorf("header must include completion model when agent model is absent:\n%s", got)
 	}
-	if !strings.Contains(got, "session `codex-session` · model `gpt-5-codex`") {
+	if !strings.Contains(got, "session `codex-session` · agent `claude-code` · model `gpt-5-codex` · 47k tokens · ~$0.47") {
 		t.Errorf("intent metadata must include completion model fallback:\n%s", got)
+	}
+}
+
+func TestCardLabelsIncompleteTokenTelemetry(t *testing.T) {
+	withTokens := sampleShale("with-tokens")
+	withoutTokens := sampleShale("without-tokens")
+	withoutTokens.Completion.TokensIn = 0
+	withoutTokens.Completion.TokensOut = 0
+	withoutTokens.Completion.TokensTotal = 0
+	withoutTokens.Completion.CostUSD = 0
+
+	got := Card(Input{
+		Shales:  []*store.Shale{withTokens, withoutTokens},
+		PRFiles: samplePRFiles(),
+	})
+	if !strings.Contains(got, "47k known tokens") || !strings.Contains(got, "~$0.47 known cost") {
+		t.Errorf("header must not imply complete totals when telemetry is missing:\n%s", got)
+	}
+	if !strings.Contains(got, "session `without-tokens`") ||
+		!strings.Contains(got, "tokens unknown") ||
+		!strings.Contains(got, "cost unknown") {
+		t.Errorf("intent metadata must make missing telemetry explicit:\n%s", got)
 	}
 }
 
@@ -189,11 +212,12 @@ func TestCardGitDerivedEvidence(t *testing.T) {
 	}
 	got := Card(Input{Shales: []*store.Shale{s}, PRFiles: samplePRFiles()})
 	checkGolden(t, "git_derived.md", got)
-	if !strings.Contains(got, "◐ k1l2m3n4o5") || !strings.Contains(got, "not hook-verified") {
+	if !strings.Contains(got, "| `k1l2m3n4o5` | ◐ git fallback |") ||
+		!strings.Contains(got, "no agent hook event recorded") {
 		t.Error("git-derived evidence must be visually distinct (spec rule 9)")
 	}
-	if !strings.Contains(got, "Hook validation was not observed for session `k1l2m3n4o5`") ||
-		!strings.Contains(got, "token/command telemetry may be incomplete") {
+	if !strings.Contains(got, "Session `k1l2m3n4o5` only has git fallback file evidence") ||
+		!strings.Contains(got, "Token and command totals may be incomplete") {
 		t.Errorf("git-derived-only sessions must carry an explicit hook validation note:\n%s", got)
 	}
 }

@@ -7,215 +7,217 @@ claude-fable-5 · 47k tokens · ~$0.47 · 3 iterations · 38 min
 >
 > Brute force attempts observed in prod logs. Redis counter, 10 req/min per IP.
 
-*Declared 2026-06-09 14:02 · session `a1b2c3d4e5` · model `claude-fable-5` · transcript `sha256:4be91d03…`*
+*Declared 2026-06-09 14:02 UTC · session `a1b2c3d4e5` · agent `claude-code` · model `claude-fable-5` · 47k tokens · ~$0.47 · 3 iterations · 38 min · transcript `sha256:4be91d03…`*
 
 ### Completion
-> Redis-backed rate limiter implemented. In-memory fallback added.
+> **`a1b2c3d4e5`** · Redis-backed rate limiter implemented. In-memory fallback added.
 
-### Changed files (201) — 0 with evidence · 201 untracked
-| File | Session ID | Notes |
-|---|---|---|
-| `pkg/gen/file_000.go` | — |  |
-| `pkg/gen/file_001.go` | — |  |
-| `pkg/gen/file_002.go` | — |  |
-| `pkg/gen/file_003.go` | — |  |
-| `pkg/gen/file_004.go` | — |  |
-| `pkg/gen/file_005.go` | — |  |
-| `pkg/gen/file_006.go` | — |  |
-| `pkg/gen/file_007.go` | — |  |
-| `pkg/gen/file_008.go` | — |  |
-| `pkg/gen/file_009.go` | — |  |
-| `pkg/gen/file_010.go` | — |  |
-| `pkg/gen/file_011.go` | — |  |
-| `pkg/gen/file_012.go` | — |  |
-| `pkg/gen/file_013.go` | — |  |
-| `pkg/gen/file_014.go` | — |  |
-| `pkg/gen/file_015.go` | — |  |
-| `pkg/gen/file_016.go` | — |  |
-| `pkg/gen/file_017.go` | — |  |
-| `pkg/gen/file_018.go` | — |  |
-| `pkg/gen/file_019.go` | — |  |
-| `pkg/gen/file_020.go` | — |  |
-| `pkg/gen/file_021.go` | — |  |
-| `pkg/gen/file_022.go` | — |  |
-| `pkg/gen/file_023.go` | — |  |
-| `pkg/gen/file_024.go` | — |  |
-| `pkg/gen/file_025.go` | — |  |
-| `pkg/gen/file_026.go` | — |  |
-| `pkg/gen/file_027.go` | — |  |
-| `pkg/gen/file_028.go` | — |  |
-| `pkg/gen/file_029.go` | — |  |
-| `pkg/gen/file_030.go` | — |  |
-| `pkg/gen/file_031.go` | — |  |
-| `pkg/gen/file_032.go` | — |  |
-| `pkg/gen/file_033.go` | — |  |
-| `pkg/gen/file_034.go` | — |  |
-| `pkg/gen/file_035.go` | — |  |
-| `pkg/gen/file_036.go` | — |  |
-| `pkg/gen/file_037.go` | — |  |
-| `pkg/gen/file_038.go` | — |  |
-| `pkg/gen/file_039.go` | — |  |
-| `pkg/gen/file_040.go` | — |  |
-| `pkg/gen/file_041.go` | — |  |
-| `pkg/gen/file_042.go` | — |  |
-| `pkg/gen/file_043.go` | — |  |
-| `pkg/gen/file_044.go` | — |  |
-| `pkg/gen/file_045.go` | — |  |
-| `pkg/gen/file_046.go` | — |  |
-| `pkg/gen/file_047.go` | — |  |
-| `pkg/gen/file_048.go` | — |  |
-| `pkg/gen/file_049.go` | — |  |
-| `pkg/gen/file_050.go` | — |  |
-| `pkg/gen/file_051.go` | — |  |
-| `pkg/gen/file_052.go` | — |  |
-| `pkg/gen/file_053.go` | — |  |
-| `pkg/gen/file_054.go` | — |  |
-| `pkg/gen/file_055.go` | — |  |
-| `pkg/gen/file_056.go` | — |  |
-| `pkg/gen/file_057.go` | — |  |
-| `pkg/gen/file_058.go` | — |  |
-| `pkg/gen/file_059.go` | — |  |
-| `pkg/gen/file_060.go` | — |  |
-| `pkg/gen/file_061.go` | — |  |
-| `pkg/gen/file_062.go` | — |  |
-| `pkg/gen/file_063.go` | — |  |
-| `pkg/gen/file_064.go` | — |  |
-| `pkg/gen/file_065.go` | — |  |
-| `pkg/gen/file_066.go` | — |  |
-| `pkg/gen/file_067.go` | — |  |
-| `pkg/gen/file_068.go` | — |  |
-| `pkg/gen/file_069.go` | — |  |
-| `pkg/gen/file_070.go` | — |  |
-| `pkg/gen/file_071.go` | — |  |
-| `pkg/gen/file_072.go` | — |  |
-| `pkg/gen/file_073.go` | — |  |
-| `pkg/gen/file_074.go` | — |  |
-| `pkg/gen/file_075.go` | — |  |
-| `pkg/gen/file_076.go` | — |  |
-| `pkg/gen/file_077.go` | — |  |
-| `pkg/gen/file_078.go` | — |  |
-| `pkg/gen/file_079.go` | — |  |
-| `pkg/gen/file_080.go` | — |  |
-| `pkg/gen/file_081.go` | — |  |
-| `pkg/gen/file_082.go` | — |  |
-| `pkg/gen/file_083.go` | — |  |
-| `pkg/gen/file_084.go` | — |  |
-| `pkg/gen/file_085.go` | — |  |
-| `pkg/gen/file_086.go` | — |  |
-| `pkg/gen/file_087.go` | — |  |
-| `pkg/gen/file_088.go` | — |  |
-| `pkg/gen/file_089.go` | — |  |
-| `pkg/gen/file_090.go` | — |  |
-| `pkg/gen/file_091.go` | — |  |
-| `pkg/gen/file_092.go` | — |  |
-| `pkg/gen/file_093.go` | — |  |
-| `pkg/gen/file_094.go` | — |  |
-| `pkg/gen/file_095.go` | — |  |
-| `pkg/gen/file_096.go` | — |  |
-| `pkg/gen/file_097.go` | — |  |
-| `pkg/gen/file_098.go` | — |  |
-| `pkg/gen/file_099.go` | — |  |
-| `pkg/gen/file_100.go` | — |  |
-| `pkg/gen/file_101.go` | — |  |
-| `pkg/gen/file_102.go` | — |  |
-| `pkg/gen/file_103.go` | — |  |
-| `pkg/gen/file_104.go` | — |  |
-| `pkg/gen/file_105.go` | — |  |
-| `pkg/gen/file_106.go` | — |  |
-| `pkg/gen/file_107.go` | — |  |
-| `pkg/gen/file_108.go` | — |  |
-| `pkg/gen/file_109.go` | — |  |
-| `pkg/gen/file_110.go` | — |  |
-| `pkg/gen/file_111.go` | — |  |
-| `pkg/gen/file_112.go` | — |  |
-| `pkg/gen/file_113.go` | — |  |
-| `pkg/gen/file_114.go` | — |  |
-| `pkg/gen/file_115.go` | — |  |
-| `pkg/gen/file_116.go` | — |  |
-| `pkg/gen/file_117.go` | — |  |
-| `pkg/gen/file_118.go` | — |  |
-| `pkg/gen/file_119.go` | — |  |
-| `pkg/gen/file_120.go` | — |  |
-| `pkg/gen/file_121.go` | — |  |
-| `pkg/gen/file_122.go` | — |  |
-| `pkg/gen/file_123.go` | — |  |
-| `pkg/gen/file_124.go` | — |  |
-| `pkg/gen/file_125.go` | — |  |
-| `pkg/gen/file_126.go` | — |  |
-| `pkg/gen/file_127.go` | — |  |
-| `pkg/gen/file_128.go` | — |  |
-| `pkg/gen/file_129.go` | — |  |
-| `pkg/gen/file_130.go` | — |  |
-| `pkg/gen/file_131.go` | — |  |
-| `pkg/gen/file_132.go` | — |  |
-| `pkg/gen/file_133.go` | — |  |
-| `pkg/gen/file_134.go` | — |  |
-| `pkg/gen/file_135.go` | — |  |
-| `pkg/gen/file_136.go` | — |  |
-| `pkg/gen/file_137.go` | — |  |
-| `pkg/gen/file_138.go` | — |  |
-| `pkg/gen/file_139.go` | — |  |
-| `pkg/gen/file_140.go` | — |  |
-| `pkg/gen/file_141.go` | — |  |
-| `pkg/gen/file_142.go` | — |  |
-| `pkg/gen/file_143.go` | — |  |
-| `pkg/gen/file_144.go` | — |  |
-| `pkg/gen/file_145.go` | — |  |
-| `pkg/gen/file_146.go` | — |  |
-| `pkg/gen/file_147.go` | — |  |
-| `pkg/gen/file_148.go` | — |  |
-| `pkg/gen/file_149.go` | — |  |
-| `pkg/gen/file_150.go` | — |  |
-| `pkg/gen/file_151.go` | — |  |
-| `pkg/gen/file_152.go` | — |  |
-| `pkg/gen/file_153.go` | — |  |
-| `pkg/gen/file_154.go` | — |  |
-| `pkg/gen/file_155.go` | — |  |
-| `pkg/gen/file_156.go` | — |  |
-| `pkg/gen/file_157.go` | — |  |
-| `pkg/gen/file_158.go` | — |  |
-| `pkg/gen/file_159.go` | — |  |
-| `pkg/gen/file_160.go` | — |  |
-| `pkg/gen/file_161.go` | — |  |
-| `pkg/gen/file_162.go` | — |  |
-| `pkg/gen/file_163.go` | — |  |
-| `pkg/gen/file_164.go` | — |  |
-| `pkg/gen/file_165.go` | — |  |
-| `pkg/gen/file_166.go` | — |  |
-| `pkg/gen/file_167.go` | — |  |
-| `pkg/gen/file_168.go` | — |  |
-| `pkg/gen/file_169.go` | — |  |
-| `pkg/gen/file_170.go` | — |  |
-| `pkg/gen/file_171.go` | — |  |
-| `pkg/gen/file_172.go` | — |  |
-| `pkg/gen/file_173.go` | — |  |
-| `pkg/gen/file_174.go` | — |  |
-| `pkg/gen/file_175.go` | — |  |
-| `pkg/gen/file_176.go` | — |  |
-| `pkg/gen/file_177.go` | — |  |
-| `pkg/gen/file_178.go` | — |  |
-| `pkg/gen/file_179.go` | — |  |
-| `pkg/gen/file_180.go` | — |  |
-| `pkg/gen/file_181.go` | — |  |
-| `pkg/gen/file_182.go` | — |  |
-| `pkg/gen/file_183.go` | — |  |
-| `pkg/gen/file_184.go` | — |  |
-| `pkg/gen/file_185.go` | — |  |
-| `pkg/gen/file_186.go` | — |  |
-| `pkg/gen/file_187.go` | — |  |
-| `pkg/gen/file_188.go` | — |  |
-| `pkg/gen/file_189.go` | — |  |
-| `pkg/gen/file_190.go` | — |  |
-| `pkg/gen/file_191.go` | — |  |
-| `pkg/gen/file_192.go` | — |  |
-| `pkg/gen/file_193.go` | — |  |
-| `pkg/gen/file_194.go` | — |  |
-| `pkg/gen/file_195.go` | — |  |
-| `pkg/gen/file_196.go` | — |  |
-| `pkg/gen/file_197.go` | — |  |
-| `pkg/gen/file_198.go` | — |  |
-| `pkg/gen/file_199.go` | — |  |
-| `.github/workflows/deploy.yml` | — | **sensitive path: CI config** |
+### Changed files (201) — 0 with evidence · 201 without session evidence
+
+*Legend: ✅ hook event = an agent hook reported the file edit; ◐ git fallback = the file changed while that session was active, but no hook event was recorded; — = no session evidence matched the PR file.*
+| Session ID | Evidence | File | Notes |
+|---|---|---|---|
+| `—` | — | `.github/workflows/deploy.yml` | **sensitive path: CI config** |
+| `—` | — | `pkg/gen/file_000.go` |  |
+| `—` | — | `pkg/gen/file_001.go` |  |
+| `—` | — | `pkg/gen/file_002.go` |  |
+| `—` | — | `pkg/gen/file_003.go` |  |
+| `—` | — | `pkg/gen/file_004.go` |  |
+| `—` | — | `pkg/gen/file_005.go` |  |
+| `—` | — | `pkg/gen/file_006.go` |  |
+| `—` | — | `pkg/gen/file_007.go` |  |
+| `—` | — | `pkg/gen/file_008.go` |  |
+| `—` | — | `pkg/gen/file_009.go` |  |
+| `—` | — | `pkg/gen/file_010.go` |  |
+| `—` | — | `pkg/gen/file_011.go` |  |
+| `—` | — | `pkg/gen/file_012.go` |  |
+| `—` | — | `pkg/gen/file_013.go` |  |
+| `—` | — | `pkg/gen/file_014.go` |  |
+| `—` | — | `pkg/gen/file_015.go` |  |
+| `—` | — | `pkg/gen/file_016.go` |  |
+| `—` | — | `pkg/gen/file_017.go` |  |
+| `—` | — | `pkg/gen/file_018.go` |  |
+| `—` | — | `pkg/gen/file_019.go` |  |
+| `—` | — | `pkg/gen/file_020.go` |  |
+| `—` | — | `pkg/gen/file_021.go` |  |
+| `—` | — | `pkg/gen/file_022.go` |  |
+| `—` | — | `pkg/gen/file_023.go` |  |
+| `—` | — | `pkg/gen/file_024.go` |  |
+| `—` | — | `pkg/gen/file_025.go` |  |
+| `—` | — | `pkg/gen/file_026.go` |  |
+| `—` | — | `pkg/gen/file_027.go` |  |
+| `—` | — | `pkg/gen/file_028.go` |  |
+| `—` | — | `pkg/gen/file_029.go` |  |
+| `—` | — | `pkg/gen/file_030.go` |  |
+| `—` | — | `pkg/gen/file_031.go` |  |
+| `—` | — | `pkg/gen/file_032.go` |  |
+| `—` | — | `pkg/gen/file_033.go` |  |
+| `—` | — | `pkg/gen/file_034.go` |  |
+| `—` | — | `pkg/gen/file_035.go` |  |
+| `—` | — | `pkg/gen/file_036.go` |  |
+| `—` | — | `pkg/gen/file_037.go` |  |
+| `—` | — | `pkg/gen/file_038.go` |  |
+| `—` | — | `pkg/gen/file_039.go` |  |
+| `—` | — | `pkg/gen/file_040.go` |  |
+| `—` | — | `pkg/gen/file_041.go` |  |
+| `—` | — | `pkg/gen/file_042.go` |  |
+| `—` | — | `pkg/gen/file_043.go` |  |
+| `—` | — | `pkg/gen/file_044.go` |  |
+| `—` | — | `pkg/gen/file_045.go` |  |
+| `—` | — | `pkg/gen/file_046.go` |  |
+| `—` | — | `pkg/gen/file_047.go` |  |
+| `—` | — | `pkg/gen/file_048.go` |  |
+| `—` | — | `pkg/gen/file_049.go` |  |
+| `—` | — | `pkg/gen/file_050.go` |  |
+| `—` | — | `pkg/gen/file_051.go` |  |
+| `—` | — | `pkg/gen/file_052.go` |  |
+| `—` | — | `pkg/gen/file_053.go` |  |
+| `—` | — | `pkg/gen/file_054.go` |  |
+| `—` | — | `pkg/gen/file_055.go` |  |
+| `—` | — | `pkg/gen/file_056.go` |  |
+| `—` | — | `pkg/gen/file_057.go` |  |
+| `—` | — | `pkg/gen/file_058.go` |  |
+| `—` | — | `pkg/gen/file_059.go` |  |
+| `—` | — | `pkg/gen/file_060.go` |  |
+| `—` | — | `pkg/gen/file_061.go` |  |
+| `—` | — | `pkg/gen/file_062.go` |  |
+| `—` | — | `pkg/gen/file_063.go` |  |
+| `—` | — | `pkg/gen/file_064.go` |  |
+| `—` | — | `pkg/gen/file_065.go` |  |
+| `—` | — | `pkg/gen/file_066.go` |  |
+| `—` | — | `pkg/gen/file_067.go` |  |
+| `—` | — | `pkg/gen/file_068.go` |  |
+| `—` | — | `pkg/gen/file_069.go` |  |
+| `—` | — | `pkg/gen/file_070.go` |  |
+| `—` | — | `pkg/gen/file_071.go` |  |
+| `—` | — | `pkg/gen/file_072.go` |  |
+| `—` | — | `pkg/gen/file_073.go` |  |
+| `—` | — | `pkg/gen/file_074.go` |  |
+| `—` | — | `pkg/gen/file_075.go` |  |
+| `—` | — | `pkg/gen/file_076.go` |  |
+| `—` | — | `pkg/gen/file_077.go` |  |
+| `—` | — | `pkg/gen/file_078.go` |  |
+| `—` | — | `pkg/gen/file_079.go` |  |
+| `—` | — | `pkg/gen/file_080.go` |  |
+| `—` | — | `pkg/gen/file_081.go` |  |
+| `—` | — | `pkg/gen/file_082.go` |  |
+| `—` | — | `pkg/gen/file_083.go` |  |
+| `—` | — | `pkg/gen/file_084.go` |  |
+| `—` | — | `pkg/gen/file_085.go` |  |
+| `—` | — | `pkg/gen/file_086.go` |  |
+| `—` | — | `pkg/gen/file_087.go` |  |
+| `—` | — | `pkg/gen/file_088.go` |  |
+| `—` | — | `pkg/gen/file_089.go` |  |
+| `—` | — | `pkg/gen/file_090.go` |  |
+| `—` | — | `pkg/gen/file_091.go` |  |
+| `—` | — | `pkg/gen/file_092.go` |  |
+| `—` | — | `pkg/gen/file_093.go` |  |
+| `—` | — | `pkg/gen/file_094.go` |  |
+| `—` | — | `pkg/gen/file_095.go` |  |
+| `—` | — | `pkg/gen/file_096.go` |  |
+| `—` | — | `pkg/gen/file_097.go` |  |
+| `—` | — | `pkg/gen/file_098.go` |  |
+| `—` | — | `pkg/gen/file_099.go` |  |
+| `—` | — | `pkg/gen/file_100.go` |  |
+| `—` | — | `pkg/gen/file_101.go` |  |
+| `—` | — | `pkg/gen/file_102.go` |  |
+| `—` | — | `pkg/gen/file_103.go` |  |
+| `—` | — | `pkg/gen/file_104.go` |  |
+| `—` | — | `pkg/gen/file_105.go` |  |
+| `—` | — | `pkg/gen/file_106.go` |  |
+| `—` | — | `pkg/gen/file_107.go` |  |
+| `—` | — | `pkg/gen/file_108.go` |  |
+| `—` | — | `pkg/gen/file_109.go` |  |
+| `—` | — | `pkg/gen/file_110.go` |  |
+| `—` | — | `pkg/gen/file_111.go` |  |
+| `—` | — | `pkg/gen/file_112.go` |  |
+| `—` | — | `pkg/gen/file_113.go` |  |
+| `—` | — | `pkg/gen/file_114.go` |  |
+| `—` | — | `pkg/gen/file_115.go` |  |
+| `—` | — | `pkg/gen/file_116.go` |  |
+| `—` | — | `pkg/gen/file_117.go` |  |
+| `—` | — | `pkg/gen/file_118.go` |  |
+| `—` | — | `pkg/gen/file_119.go` |  |
+| `—` | — | `pkg/gen/file_120.go` |  |
+| `—` | — | `pkg/gen/file_121.go` |  |
+| `—` | — | `pkg/gen/file_122.go` |  |
+| `—` | — | `pkg/gen/file_123.go` |  |
+| `—` | — | `pkg/gen/file_124.go` |  |
+| `—` | — | `pkg/gen/file_125.go` |  |
+| `—` | — | `pkg/gen/file_126.go` |  |
+| `—` | — | `pkg/gen/file_127.go` |  |
+| `—` | — | `pkg/gen/file_128.go` |  |
+| `—` | — | `pkg/gen/file_129.go` |  |
+| `—` | — | `pkg/gen/file_130.go` |  |
+| `—` | — | `pkg/gen/file_131.go` |  |
+| `—` | — | `pkg/gen/file_132.go` |  |
+| `—` | — | `pkg/gen/file_133.go` |  |
+| `—` | — | `pkg/gen/file_134.go` |  |
+| `—` | — | `pkg/gen/file_135.go` |  |
+| `—` | — | `pkg/gen/file_136.go` |  |
+| `—` | — | `pkg/gen/file_137.go` |  |
+| `—` | — | `pkg/gen/file_138.go` |  |
+| `—` | — | `pkg/gen/file_139.go` |  |
+| `—` | — | `pkg/gen/file_140.go` |  |
+| `—` | — | `pkg/gen/file_141.go` |  |
+| `—` | — | `pkg/gen/file_142.go` |  |
+| `—` | — | `pkg/gen/file_143.go` |  |
+| `—` | — | `pkg/gen/file_144.go` |  |
+| `—` | — | `pkg/gen/file_145.go` |  |
+| `—` | — | `pkg/gen/file_146.go` |  |
+| `—` | — | `pkg/gen/file_147.go` |  |
+| `—` | — | `pkg/gen/file_148.go` |  |
+| `—` | — | `pkg/gen/file_149.go` |  |
+| `—` | — | `pkg/gen/file_150.go` |  |
+| `—` | — | `pkg/gen/file_151.go` |  |
+| `—` | — | `pkg/gen/file_152.go` |  |
+| `—` | — | `pkg/gen/file_153.go` |  |
+| `—` | — | `pkg/gen/file_154.go` |  |
+| `—` | — | `pkg/gen/file_155.go` |  |
+| `—` | — | `pkg/gen/file_156.go` |  |
+| `—` | — | `pkg/gen/file_157.go` |  |
+| `—` | — | `pkg/gen/file_158.go` |  |
+| `—` | — | `pkg/gen/file_159.go` |  |
+| `—` | — | `pkg/gen/file_160.go` |  |
+| `—` | — | `pkg/gen/file_161.go` |  |
+| `—` | — | `pkg/gen/file_162.go` |  |
+| `—` | — | `pkg/gen/file_163.go` |  |
+| `—` | — | `pkg/gen/file_164.go` |  |
+| `—` | — | `pkg/gen/file_165.go` |  |
+| `—` | — | `pkg/gen/file_166.go` |  |
+| `—` | — | `pkg/gen/file_167.go` |  |
+| `—` | — | `pkg/gen/file_168.go` |  |
+| `—` | — | `pkg/gen/file_169.go` |  |
+| `—` | — | `pkg/gen/file_170.go` |  |
+| `—` | — | `pkg/gen/file_171.go` |  |
+| `—` | — | `pkg/gen/file_172.go` |  |
+| `—` | — | `pkg/gen/file_173.go` |  |
+| `—` | — | `pkg/gen/file_174.go` |  |
+| `—` | — | `pkg/gen/file_175.go` |  |
+| `—` | — | `pkg/gen/file_176.go` |  |
+| `—` | — | `pkg/gen/file_177.go` |  |
+| `—` | — | `pkg/gen/file_178.go` |  |
+| `—` | — | `pkg/gen/file_179.go` |  |
+| `—` | — | `pkg/gen/file_180.go` |  |
+| `—` | — | `pkg/gen/file_181.go` |  |
+| `—` | — | `pkg/gen/file_182.go` |  |
+| `—` | — | `pkg/gen/file_183.go` |  |
+| `—` | — | `pkg/gen/file_184.go` |  |
+| `—` | — | `pkg/gen/file_185.go` |  |
+| `—` | — | `pkg/gen/file_186.go` |  |
+| `—` | — | `pkg/gen/file_187.go` |  |
+| `—` | — | `pkg/gen/file_188.go` |  |
+| `—` | — | `pkg/gen/file_189.go` |  |
+| `—` | — | `pkg/gen/file_190.go` |  |
+| `—` | — | `pkg/gen/file_191.go` |  |
+| `—` | — | `pkg/gen/file_192.go` |  |
+| `—` | — | `pkg/gen/file_193.go` |  |
+| `—` | — | `pkg/gen/file_194.go` |  |
+| `—` | — | `pkg/gen/file_195.go` |  |
+| `—` | — | `pkg/gen/file_196.go` |  |
+| `—` | — | `pkg/gen/file_197.go` |  |
+| `—` | — | `pkg/gen/file_198.go` |  |
+| `—` | — | `pkg/gen/file_199.go` |  |
 
 Files grouped by directory:
 
@@ -226,216 +228,216 @@ Files grouped by directory:
 
 <details><summary>Full file list</summary>
 
-| File | Session ID | Notes |
-|---|---|---|
-| `pkg/gen/file_000.go` | — |  |
-| `pkg/gen/file_001.go` | — |  |
-| `pkg/gen/file_002.go` | — |  |
-| `pkg/gen/file_003.go` | — |  |
-| `pkg/gen/file_004.go` | — |  |
-| `pkg/gen/file_005.go` | — |  |
-| `pkg/gen/file_006.go` | — |  |
-| `pkg/gen/file_007.go` | — |  |
-| `pkg/gen/file_008.go` | — |  |
-| `pkg/gen/file_009.go` | — |  |
-| `pkg/gen/file_010.go` | — |  |
-| `pkg/gen/file_011.go` | — |  |
-| `pkg/gen/file_012.go` | — |  |
-| `pkg/gen/file_013.go` | — |  |
-| `pkg/gen/file_014.go` | — |  |
-| `pkg/gen/file_015.go` | — |  |
-| `pkg/gen/file_016.go` | — |  |
-| `pkg/gen/file_017.go` | — |  |
-| `pkg/gen/file_018.go` | — |  |
-| `pkg/gen/file_019.go` | — |  |
-| `pkg/gen/file_020.go` | — |  |
-| `pkg/gen/file_021.go` | — |  |
-| `pkg/gen/file_022.go` | — |  |
-| `pkg/gen/file_023.go` | — |  |
-| `pkg/gen/file_024.go` | — |  |
-| `pkg/gen/file_025.go` | — |  |
-| `pkg/gen/file_026.go` | — |  |
-| `pkg/gen/file_027.go` | — |  |
-| `pkg/gen/file_028.go` | — |  |
-| `pkg/gen/file_029.go` | — |  |
-| `pkg/gen/file_030.go` | — |  |
-| `pkg/gen/file_031.go` | — |  |
-| `pkg/gen/file_032.go` | — |  |
-| `pkg/gen/file_033.go` | — |  |
-| `pkg/gen/file_034.go` | — |  |
-| `pkg/gen/file_035.go` | — |  |
-| `pkg/gen/file_036.go` | — |  |
-| `pkg/gen/file_037.go` | — |  |
-| `pkg/gen/file_038.go` | — |  |
-| `pkg/gen/file_039.go` | — |  |
-| `pkg/gen/file_040.go` | — |  |
-| `pkg/gen/file_041.go` | — |  |
-| `pkg/gen/file_042.go` | — |  |
-| `pkg/gen/file_043.go` | — |  |
-| `pkg/gen/file_044.go` | — |  |
-| `pkg/gen/file_045.go` | — |  |
-| `pkg/gen/file_046.go` | — |  |
-| `pkg/gen/file_047.go` | — |  |
-| `pkg/gen/file_048.go` | — |  |
-| `pkg/gen/file_049.go` | — |  |
-| `pkg/gen/file_050.go` | — |  |
-| `pkg/gen/file_051.go` | — |  |
-| `pkg/gen/file_052.go` | — |  |
-| `pkg/gen/file_053.go` | — |  |
-| `pkg/gen/file_054.go` | — |  |
-| `pkg/gen/file_055.go` | — |  |
-| `pkg/gen/file_056.go` | — |  |
-| `pkg/gen/file_057.go` | — |  |
-| `pkg/gen/file_058.go` | — |  |
-| `pkg/gen/file_059.go` | — |  |
-| `pkg/gen/file_060.go` | — |  |
-| `pkg/gen/file_061.go` | — |  |
-| `pkg/gen/file_062.go` | — |  |
-| `pkg/gen/file_063.go` | — |  |
-| `pkg/gen/file_064.go` | — |  |
-| `pkg/gen/file_065.go` | — |  |
-| `pkg/gen/file_066.go` | — |  |
-| `pkg/gen/file_067.go` | — |  |
-| `pkg/gen/file_068.go` | — |  |
-| `pkg/gen/file_069.go` | — |  |
-| `pkg/gen/file_070.go` | — |  |
-| `pkg/gen/file_071.go` | — |  |
-| `pkg/gen/file_072.go` | — |  |
-| `pkg/gen/file_073.go` | — |  |
-| `pkg/gen/file_074.go` | — |  |
-| `pkg/gen/file_075.go` | — |  |
-| `pkg/gen/file_076.go` | — |  |
-| `pkg/gen/file_077.go` | — |  |
-| `pkg/gen/file_078.go` | — |  |
-| `pkg/gen/file_079.go` | — |  |
-| `pkg/gen/file_080.go` | — |  |
-| `pkg/gen/file_081.go` | — |  |
-| `pkg/gen/file_082.go` | — |  |
-| `pkg/gen/file_083.go` | — |  |
-| `pkg/gen/file_084.go` | — |  |
-| `pkg/gen/file_085.go` | — |  |
-| `pkg/gen/file_086.go` | — |  |
-| `pkg/gen/file_087.go` | — |  |
-| `pkg/gen/file_088.go` | — |  |
-| `pkg/gen/file_089.go` | — |  |
-| `pkg/gen/file_090.go` | — |  |
-| `pkg/gen/file_091.go` | — |  |
-| `pkg/gen/file_092.go` | — |  |
-| `pkg/gen/file_093.go` | — |  |
-| `pkg/gen/file_094.go` | — |  |
-| `pkg/gen/file_095.go` | — |  |
-| `pkg/gen/file_096.go` | — |  |
-| `pkg/gen/file_097.go` | — |  |
-| `pkg/gen/file_098.go` | — |  |
-| `pkg/gen/file_099.go` | — |  |
-| `pkg/gen/file_100.go` | — |  |
-| `pkg/gen/file_101.go` | — |  |
-| `pkg/gen/file_102.go` | — |  |
-| `pkg/gen/file_103.go` | — |  |
-| `pkg/gen/file_104.go` | — |  |
-| `pkg/gen/file_105.go` | — |  |
-| `pkg/gen/file_106.go` | — |  |
-| `pkg/gen/file_107.go` | — |  |
-| `pkg/gen/file_108.go` | — |  |
-| `pkg/gen/file_109.go` | — |  |
-| `pkg/gen/file_110.go` | — |  |
-| `pkg/gen/file_111.go` | — |  |
-| `pkg/gen/file_112.go` | — |  |
-| `pkg/gen/file_113.go` | — |  |
-| `pkg/gen/file_114.go` | — |  |
-| `pkg/gen/file_115.go` | — |  |
-| `pkg/gen/file_116.go` | — |  |
-| `pkg/gen/file_117.go` | — |  |
-| `pkg/gen/file_118.go` | — |  |
-| `pkg/gen/file_119.go` | — |  |
-| `pkg/gen/file_120.go` | — |  |
-| `pkg/gen/file_121.go` | — |  |
-| `pkg/gen/file_122.go` | — |  |
-| `pkg/gen/file_123.go` | — |  |
-| `pkg/gen/file_124.go` | — |  |
-| `pkg/gen/file_125.go` | — |  |
-| `pkg/gen/file_126.go` | — |  |
-| `pkg/gen/file_127.go` | — |  |
-| `pkg/gen/file_128.go` | — |  |
-| `pkg/gen/file_129.go` | — |  |
-| `pkg/gen/file_130.go` | — |  |
-| `pkg/gen/file_131.go` | — |  |
-| `pkg/gen/file_132.go` | — |  |
-| `pkg/gen/file_133.go` | — |  |
-| `pkg/gen/file_134.go` | — |  |
-| `pkg/gen/file_135.go` | — |  |
-| `pkg/gen/file_136.go` | — |  |
-| `pkg/gen/file_137.go` | — |  |
-| `pkg/gen/file_138.go` | — |  |
-| `pkg/gen/file_139.go` | — |  |
-| `pkg/gen/file_140.go` | — |  |
-| `pkg/gen/file_141.go` | — |  |
-| `pkg/gen/file_142.go` | — |  |
-| `pkg/gen/file_143.go` | — |  |
-| `pkg/gen/file_144.go` | — |  |
-| `pkg/gen/file_145.go` | — |  |
-| `pkg/gen/file_146.go` | — |  |
-| `pkg/gen/file_147.go` | — |  |
-| `pkg/gen/file_148.go` | — |  |
-| `pkg/gen/file_149.go` | — |  |
-| `pkg/gen/file_150.go` | — |  |
-| `pkg/gen/file_151.go` | — |  |
-| `pkg/gen/file_152.go` | — |  |
-| `pkg/gen/file_153.go` | — |  |
-| `pkg/gen/file_154.go` | — |  |
-| `pkg/gen/file_155.go` | — |  |
-| `pkg/gen/file_156.go` | — |  |
-| `pkg/gen/file_157.go` | — |  |
-| `pkg/gen/file_158.go` | — |  |
-| `pkg/gen/file_159.go` | — |  |
-| `pkg/gen/file_160.go` | — |  |
-| `pkg/gen/file_161.go` | — |  |
-| `pkg/gen/file_162.go` | — |  |
-| `pkg/gen/file_163.go` | — |  |
-| `pkg/gen/file_164.go` | — |  |
-| `pkg/gen/file_165.go` | — |  |
-| `pkg/gen/file_166.go` | — |  |
-| `pkg/gen/file_167.go` | — |  |
-| `pkg/gen/file_168.go` | — |  |
-| `pkg/gen/file_169.go` | — |  |
-| `pkg/gen/file_170.go` | — |  |
-| `pkg/gen/file_171.go` | — |  |
-| `pkg/gen/file_172.go` | — |  |
-| `pkg/gen/file_173.go` | — |  |
-| `pkg/gen/file_174.go` | — |  |
-| `pkg/gen/file_175.go` | — |  |
-| `pkg/gen/file_176.go` | — |  |
-| `pkg/gen/file_177.go` | — |  |
-| `pkg/gen/file_178.go` | — |  |
-| `pkg/gen/file_179.go` | — |  |
-| `pkg/gen/file_180.go` | — |  |
-| `pkg/gen/file_181.go` | — |  |
-| `pkg/gen/file_182.go` | — |  |
-| `pkg/gen/file_183.go` | — |  |
-| `pkg/gen/file_184.go` | — |  |
-| `pkg/gen/file_185.go` | — |  |
-| `pkg/gen/file_186.go` | — |  |
-| `pkg/gen/file_187.go` | — |  |
-| `pkg/gen/file_188.go` | — |  |
-| `pkg/gen/file_189.go` | — |  |
-| `pkg/gen/file_190.go` | — |  |
-| `pkg/gen/file_191.go` | — |  |
-| `pkg/gen/file_192.go` | — |  |
-| `pkg/gen/file_193.go` | — |  |
-| `pkg/gen/file_194.go` | — |  |
-| `pkg/gen/file_195.go` | — |  |
-| `pkg/gen/file_196.go` | — |  |
-| `pkg/gen/file_197.go` | — |  |
-| `pkg/gen/file_198.go` | — |  |
-| `pkg/gen/file_199.go` | — |  |
-| `.github/workflows/deploy.yml` | — | **sensitive path: CI config** |
+| Session ID | Evidence | File | Notes |
+|---|---|---|---|
+| `—` | — | `.github/workflows/deploy.yml` | **sensitive path: CI config** |
+| `—` | — | `pkg/gen/file_000.go` |  |
+| `—` | — | `pkg/gen/file_001.go` |  |
+| `—` | — | `pkg/gen/file_002.go` |  |
+| `—` | — | `pkg/gen/file_003.go` |  |
+| `—` | — | `pkg/gen/file_004.go` |  |
+| `—` | — | `pkg/gen/file_005.go` |  |
+| `—` | — | `pkg/gen/file_006.go` |  |
+| `—` | — | `pkg/gen/file_007.go` |  |
+| `—` | — | `pkg/gen/file_008.go` |  |
+| `—` | — | `pkg/gen/file_009.go` |  |
+| `—` | — | `pkg/gen/file_010.go` |  |
+| `—` | — | `pkg/gen/file_011.go` |  |
+| `—` | — | `pkg/gen/file_012.go` |  |
+| `—` | — | `pkg/gen/file_013.go` |  |
+| `—` | — | `pkg/gen/file_014.go` |  |
+| `—` | — | `pkg/gen/file_015.go` |  |
+| `—` | — | `pkg/gen/file_016.go` |  |
+| `—` | — | `pkg/gen/file_017.go` |  |
+| `—` | — | `pkg/gen/file_018.go` |  |
+| `—` | — | `pkg/gen/file_019.go` |  |
+| `—` | — | `pkg/gen/file_020.go` |  |
+| `—` | — | `pkg/gen/file_021.go` |  |
+| `—` | — | `pkg/gen/file_022.go` |  |
+| `—` | — | `pkg/gen/file_023.go` |  |
+| `—` | — | `pkg/gen/file_024.go` |  |
+| `—` | — | `pkg/gen/file_025.go` |  |
+| `—` | — | `pkg/gen/file_026.go` |  |
+| `—` | — | `pkg/gen/file_027.go` |  |
+| `—` | — | `pkg/gen/file_028.go` |  |
+| `—` | — | `pkg/gen/file_029.go` |  |
+| `—` | — | `pkg/gen/file_030.go` |  |
+| `—` | — | `pkg/gen/file_031.go` |  |
+| `—` | — | `pkg/gen/file_032.go` |  |
+| `—` | — | `pkg/gen/file_033.go` |  |
+| `—` | — | `pkg/gen/file_034.go` |  |
+| `—` | — | `pkg/gen/file_035.go` |  |
+| `—` | — | `pkg/gen/file_036.go` |  |
+| `—` | — | `pkg/gen/file_037.go` |  |
+| `—` | — | `pkg/gen/file_038.go` |  |
+| `—` | — | `pkg/gen/file_039.go` |  |
+| `—` | — | `pkg/gen/file_040.go` |  |
+| `—` | — | `pkg/gen/file_041.go` |  |
+| `—` | — | `pkg/gen/file_042.go` |  |
+| `—` | — | `pkg/gen/file_043.go` |  |
+| `—` | — | `pkg/gen/file_044.go` |  |
+| `—` | — | `pkg/gen/file_045.go` |  |
+| `—` | — | `pkg/gen/file_046.go` |  |
+| `—` | — | `pkg/gen/file_047.go` |  |
+| `—` | — | `pkg/gen/file_048.go` |  |
+| `—` | — | `pkg/gen/file_049.go` |  |
+| `—` | — | `pkg/gen/file_050.go` |  |
+| `—` | — | `pkg/gen/file_051.go` |  |
+| `—` | — | `pkg/gen/file_052.go` |  |
+| `—` | — | `pkg/gen/file_053.go` |  |
+| `—` | — | `pkg/gen/file_054.go` |  |
+| `—` | — | `pkg/gen/file_055.go` |  |
+| `—` | — | `pkg/gen/file_056.go` |  |
+| `—` | — | `pkg/gen/file_057.go` |  |
+| `—` | — | `pkg/gen/file_058.go` |  |
+| `—` | — | `pkg/gen/file_059.go` |  |
+| `—` | — | `pkg/gen/file_060.go` |  |
+| `—` | — | `pkg/gen/file_061.go` |  |
+| `—` | — | `pkg/gen/file_062.go` |  |
+| `—` | — | `pkg/gen/file_063.go` |  |
+| `—` | — | `pkg/gen/file_064.go` |  |
+| `—` | — | `pkg/gen/file_065.go` |  |
+| `—` | — | `pkg/gen/file_066.go` |  |
+| `—` | — | `pkg/gen/file_067.go` |  |
+| `—` | — | `pkg/gen/file_068.go` |  |
+| `—` | — | `pkg/gen/file_069.go` |  |
+| `—` | — | `pkg/gen/file_070.go` |  |
+| `—` | — | `pkg/gen/file_071.go` |  |
+| `—` | — | `pkg/gen/file_072.go` |  |
+| `—` | — | `pkg/gen/file_073.go` |  |
+| `—` | — | `pkg/gen/file_074.go` |  |
+| `—` | — | `pkg/gen/file_075.go` |  |
+| `—` | — | `pkg/gen/file_076.go` |  |
+| `—` | — | `pkg/gen/file_077.go` |  |
+| `—` | — | `pkg/gen/file_078.go` |  |
+| `—` | — | `pkg/gen/file_079.go` |  |
+| `—` | — | `pkg/gen/file_080.go` |  |
+| `—` | — | `pkg/gen/file_081.go` |  |
+| `—` | — | `pkg/gen/file_082.go` |  |
+| `—` | — | `pkg/gen/file_083.go` |  |
+| `—` | — | `pkg/gen/file_084.go` |  |
+| `—` | — | `pkg/gen/file_085.go` |  |
+| `—` | — | `pkg/gen/file_086.go` |  |
+| `—` | — | `pkg/gen/file_087.go` |  |
+| `—` | — | `pkg/gen/file_088.go` |  |
+| `—` | — | `pkg/gen/file_089.go` |  |
+| `—` | — | `pkg/gen/file_090.go` |  |
+| `—` | — | `pkg/gen/file_091.go` |  |
+| `—` | — | `pkg/gen/file_092.go` |  |
+| `—` | — | `pkg/gen/file_093.go` |  |
+| `—` | — | `pkg/gen/file_094.go` |  |
+| `—` | — | `pkg/gen/file_095.go` |  |
+| `—` | — | `pkg/gen/file_096.go` |  |
+| `—` | — | `pkg/gen/file_097.go` |  |
+| `—` | — | `pkg/gen/file_098.go` |  |
+| `—` | — | `pkg/gen/file_099.go` |  |
+| `—` | — | `pkg/gen/file_100.go` |  |
+| `—` | — | `pkg/gen/file_101.go` |  |
+| `—` | — | `pkg/gen/file_102.go` |  |
+| `—` | — | `pkg/gen/file_103.go` |  |
+| `—` | — | `pkg/gen/file_104.go` |  |
+| `—` | — | `pkg/gen/file_105.go` |  |
+| `—` | — | `pkg/gen/file_106.go` |  |
+| `—` | — | `pkg/gen/file_107.go` |  |
+| `—` | — | `pkg/gen/file_108.go` |  |
+| `—` | — | `pkg/gen/file_109.go` |  |
+| `—` | — | `pkg/gen/file_110.go` |  |
+| `—` | — | `pkg/gen/file_111.go` |  |
+| `—` | — | `pkg/gen/file_112.go` |  |
+| `—` | — | `pkg/gen/file_113.go` |  |
+| `—` | — | `pkg/gen/file_114.go` |  |
+| `—` | — | `pkg/gen/file_115.go` |  |
+| `—` | — | `pkg/gen/file_116.go` |  |
+| `—` | — | `pkg/gen/file_117.go` |  |
+| `—` | — | `pkg/gen/file_118.go` |  |
+| `—` | — | `pkg/gen/file_119.go` |  |
+| `—` | — | `pkg/gen/file_120.go` |  |
+| `—` | — | `pkg/gen/file_121.go` |  |
+| `—` | — | `pkg/gen/file_122.go` |  |
+| `—` | — | `pkg/gen/file_123.go` |  |
+| `—` | — | `pkg/gen/file_124.go` |  |
+| `—` | — | `pkg/gen/file_125.go` |  |
+| `—` | — | `pkg/gen/file_126.go` |  |
+| `—` | — | `pkg/gen/file_127.go` |  |
+| `—` | — | `pkg/gen/file_128.go` |  |
+| `—` | — | `pkg/gen/file_129.go` |  |
+| `—` | — | `pkg/gen/file_130.go` |  |
+| `—` | — | `pkg/gen/file_131.go` |  |
+| `—` | — | `pkg/gen/file_132.go` |  |
+| `—` | — | `pkg/gen/file_133.go` |  |
+| `—` | — | `pkg/gen/file_134.go` |  |
+| `—` | — | `pkg/gen/file_135.go` |  |
+| `—` | — | `pkg/gen/file_136.go` |  |
+| `—` | — | `pkg/gen/file_137.go` |  |
+| `—` | — | `pkg/gen/file_138.go` |  |
+| `—` | — | `pkg/gen/file_139.go` |  |
+| `—` | — | `pkg/gen/file_140.go` |  |
+| `—` | — | `pkg/gen/file_141.go` |  |
+| `—` | — | `pkg/gen/file_142.go` |  |
+| `—` | — | `pkg/gen/file_143.go` |  |
+| `—` | — | `pkg/gen/file_144.go` |  |
+| `—` | — | `pkg/gen/file_145.go` |  |
+| `—` | — | `pkg/gen/file_146.go` |  |
+| `—` | — | `pkg/gen/file_147.go` |  |
+| `—` | — | `pkg/gen/file_148.go` |  |
+| `—` | — | `pkg/gen/file_149.go` |  |
+| `—` | — | `pkg/gen/file_150.go` |  |
+| `—` | — | `pkg/gen/file_151.go` |  |
+| `—` | — | `pkg/gen/file_152.go` |  |
+| `—` | — | `pkg/gen/file_153.go` |  |
+| `—` | — | `pkg/gen/file_154.go` |  |
+| `—` | — | `pkg/gen/file_155.go` |  |
+| `—` | — | `pkg/gen/file_156.go` |  |
+| `—` | — | `pkg/gen/file_157.go` |  |
+| `—` | — | `pkg/gen/file_158.go` |  |
+| `—` | — | `pkg/gen/file_159.go` |  |
+| `—` | — | `pkg/gen/file_160.go` |  |
+| `—` | — | `pkg/gen/file_161.go` |  |
+| `—` | — | `pkg/gen/file_162.go` |  |
+| `—` | — | `pkg/gen/file_163.go` |  |
+| `—` | — | `pkg/gen/file_164.go` |  |
+| `—` | — | `pkg/gen/file_165.go` |  |
+| `—` | — | `pkg/gen/file_166.go` |  |
+| `—` | — | `pkg/gen/file_167.go` |  |
+| `—` | — | `pkg/gen/file_168.go` |  |
+| `—` | — | `pkg/gen/file_169.go` |  |
+| `—` | — | `pkg/gen/file_170.go` |  |
+| `—` | — | `pkg/gen/file_171.go` |  |
+| `—` | — | `pkg/gen/file_172.go` |  |
+| `—` | — | `pkg/gen/file_173.go` |  |
+| `—` | — | `pkg/gen/file_174.go` |  |
+| `—` | — | `pkg/gen/file_175.go` |  |
+| `—` | — | `pkg/gen/file_176.go` |  |
+| `—` | — | `pkg/gen/file_177.go` |  |
+| `—` | — | `pkg/gen/file_178.go` |  |
+| `—` | — | `pkg/gen/file_179.go` |  |
+| `—` | — | `pkg/gen/file_180.go` |  |
+| `—` | — | `pkg/gen/file_181.go` |  |
+| `—` | — | `pkg/gen/file_182.go` |  |
+| `—` | — | `pkg/gen/file_183.go` |  |
+| `—` | — | `pkg/gen/file_184.go` |  |
+| `—` | — | `pkg/gen/file_185.go` |  |
+| `—` | — | `pkg/gen/file_186.go` |  |
+| `—` | — | `pkg/gen/file_187.go` |  |
+| `—` | — | `pkg/gen/file_188.go` |  |
+| `—` | — | `pkg/gen/file_189.go` |  |
+| `—` | — | `pkg/gen/file_190.go` |  |
+| `—` | — | `pkg/gen/file_191.go` |  |
+| `—` | — | `pkg/gen/file_192.go` |  |
+| `—` | — | `pkg/gen/file_193.go` |  |
+| `—` | — | `pkg/gen/file_194.go` |  |
+| `—` | — | `pkg/gen/file_195.go` |  |
+| `—` | — | `pkg/gen/file_196.go` |  |
+| `—` | — | `pkg/gen/file_197.go` |  |
+| `—` | — | `pkg/gen/file_198.go` |  |
+| `—` | — | `pkg/gen/file_199.go` |  |
 
 </details>
 
 ### Checks recorded locally
-| Check | Result | When |
-|---|---|---|
-| `gitleaks detect --no-banner` | ✅ passed | 14:31 |
-| `go test ./internal/auth/...` | ✅ passed | 14:33 |
+| Session ID | Check | Result | When |
+|---|---|---|---|
+| `a1b2c3d4e5` | `gitleaks detect --no-banner` | ✅ passed | 2026-06-09 14:31 UTC |
+| `a1b2c3d4e5` | `go test ./internal/auth/...` | ✅ passed | 2026-06-09 14:33 UTC |
 
 *Advisory — CI is authoritative.*
