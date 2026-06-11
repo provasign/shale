@@ -88,12 +88,14 @@ func FilesChangedSince(root string, t time.Time) []string {
 	return paths
 }
 
-// HooksPath returns the repo's core.hooksPath override resolved to an
-// absolute path, or "" when unset/unavailable so callers fall back to
-// .git/hooks. Hook managers (husky, lefthook) set this — a hook written to
-// .git/hooks in those repos would never run.
-func HooksPath(root string) string {
-	out, err := run(root, "config", "--type=path", "--get", "core.hooksPath")
+// HooksDir returns the directory git will actually run hooks from for this
+// repo, or "" when git is unavailable so callers fall back to .git/hooks.
+// rev-parse --git-path hooks honors both core.hooksPath overrides (husky,
+// lefthook) and linked worktrees (where .git is a file and hooks live in
+// the main repository) — a hook written to a literal .git/hooks in either
+// case would never run.
+func HooksDir(root string) string {
+	out, err := run(root, "rev-parse", "--git-path", "hooks")
 	if err != nil || out == "" {
 		return ""
 	}

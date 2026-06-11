@@ -398,6 +398,40 @@ func TestInstallPrePushHookHonorsHooksPath(t *testing.T) {
 	}
 }
 
+func TestInstallPrePushHookInLinkedWorktree(t *testing.T) {
+	main := t.TempDir()
+	for _, args := range [][]string{
+		{"init", "-b", "main"},
+		{"config", "user.email", "t@e.com"},
+		{"config", "user.name", "T"},
+		{"config", "commit.gpgsign", "false"},
+		{"commit", "--allow-empty", "-m", "init"},
+	} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = main
+		if out, err := cmd.CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, out)
+		}
+	}
+	wt := filepath.Join(t.TempDir(), "wt")
+	cmd := exec.Command("git", "worktree", "add", wt, "-b", "feature")
+	cmd.Dir = main
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("git worktree add: %v\n%s", err, out)
+	}
+
+	// In a linked worktree .git is a file; hooks live in the main repo and
+	// are shared. Install must land there, not error on .git/hooks.
+	skipped, err := InstallPrePushHook(wt)
+	if err != nil || skipped {
+		t.Fatalf("worktree install: skipped=%v err=%v", skipped, err)
+	}
+	raw, err := os.ReadFile(filepath.Join(main, ".git", "hooks", "pre-push"))
+	if err != nil || !strings.Contains(string(raw), "shale finalize --auto-commit") {
+		t.Fatalf("hook not in main repo hooks dir: %s (%v)", raw, err)
+	}
+}
+
 func TestDoctor(t *testing.T) {
 	root := t.TempDir()
 	t.Setenv("HOME", t.TempDir()) // isolate ClaudeSettingsPath

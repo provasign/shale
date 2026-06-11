@@ -126,7 +126,7 @@ Developers who want machine-wide capture across all repos can run
 | Tier | Mechanism | Works with |
 |---|---|---|
 | **Semantic** | The agent calls `shale intent` / `shale done` (steered) | Every agent that can run a shell command |
-| **Hook-verified** | Agent hooks stream file touches, commands, prompts to `shale capture` | Claude Code today; Cursor, Codex, Copilot adapters in progress |
+| **Hook-verified** | Agent hooks stream file touches, commands, prompts to `shale capture` | Claude Code and Codex (tested against real sessions); Cursor and Copilot (implemented, not yet validated against real payloads — [#4](https://github.com/provasign/shale/issues/4)) |
 | **Git fallback** | `shale finalize` derives the file list from git over the session window | Everything else |
 
 Hooks upgrade card fidelity (✅ per-file verification, transcripts, check

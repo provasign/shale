@@ -110,7 +110,7 @@ needs nothing but a shell:
 | Tier | Mechanism | Works with |
 |---|---|---|
 | **Semantic** | Steering prompt → `shale intent` / `shale done` CLI calls | Every agent (universal) |
-| **Hook-verified** | Agent hooks pipe event JSON to `shale capture <adapter>` | Claude Code today; Cursor/Codex/Copilot configs are written and inert until their adapters ship |
+| **Hook-verified** | Agent hooks pipe event JSON to `shale capture <adapter>` | Claude Code and Codex (tested against real sessions); Cursor/Copilot adapters implemented but not yet validated against real payloads (issue #4) |
 | **Git fallback** | `shale finalize` derives the file list from git over the intent→done window | Anything without hook events, marked `via: git` |
 
 Hooks **upgrade fidelity** (per-file verification, prompt transcripts,

@@ -145,11 +145,11 @@ exit 0
 `
 
 // PrePushHookPath returns where this repo's pre-push hook actually lives:
-// the core.hooksPath override when set (husky/lefthook repos — git never
-// runs .git/hooks there), .git/hooks otherwise. Shared with doctor so
+// git's effective hooks directory, which accounts for core.hooksPath
+// overrides (husky/lefthook) and linked worktrees. Shared with doctor so
 // install and diagnosis can never disagree about the location.
 func PrePushHookPath(repoRoot string) string {
-	if dir := gitx.HooksPath(repoRoot); dir != "" {
+	if dir := gitx.HooksDir(repoRoot); dir != "" {
 		return filepath.Join(dir, "pre-push")
 	}
 	return filepath.Join(repoRoot, ".git", "hooks", "pre-push")
