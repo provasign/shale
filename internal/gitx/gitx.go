@@ -88,6 +88,38 @@ func FilesChangedSince(root string, t time.Time) []string {
 	return paths
 }
 
+// IgnoredPaths returns the subset of paths that git ignores in this repo.
+// Ignored files (.env, credentials, key material) are exactly where secrets
+// live, so finalize drops them from hook evidence. Best-effort: on any git
+// failure this returns nil and callers must keep everything — degraded
+// evidence beats broken finalize (ADR D5).
+func IgnoredPaths(root string, paths []string) map[string]bool {
+	if len(paths) == 0 {
+		return nil
+	}
+	cmd := exec.Command("git", "check-ignore", "--stdin", "-z")
+	cmd.Dir = root
+	cmd.Stdin = strings.NewReader(strings.Join(paths, "\x00") + "\x00")
+	var buf bytes.Buffer
+	cmd.Stdout = &buf
+	cmd.Stderr = &bytes.Buffer{}
+	if err := cmd.Run(); err != nil {
+		// check-ignore exits 1 when no path is ignored — an answer, not a failure.
+		if ee, ok := err.(*exec.ExitError); ok && ee.ExitCode() == 1 {
+			return map[string]bool{}
+		}
+		return nil
+	}
+	out := buf.String()
+	ignored := map[string]bool{}
+	for _, p := range strings.Split(out, "\x00") {
+		if p != "" {
+			ignored[p] = true
+		}
+	}
+	return ignored
+}
+
 // AutoCommit stages the given paths and commits them with the standard
 // evidence message (ADR D3). Returns nil when there is nothing to commit.
 func AutoCommit(root string, paths []string, message string) error {

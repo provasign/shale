@@ -74,10 +74,15 @@ func Card(in Input) string {
 	return b.String()
 }
 
+// logoIcon is the Shale strata mark, rendered inline in the card heading.
+// GitHub proxies the image through camo and caches it; if the host is ever
+// unreachable the alt text keeps the heading readable.
+const logoIcon = `<img src="https://provasign.dev/assets/images/logo-icon.png" width="20" height="20" alt="">`
+
 // Nudge is the exact no-shale copy from docs/product.md §3.
 func Nudge() string {
 	return NudgeMarker + `
-## 🧾 No shale for this PR
+## ` + logoIcon + ` No shale for this PR
 This repo renders agent evidence on PRs. No agent session evidence was found
 for these commits. If you used an AI agent: ` + "`brew tap provasign/shale && brew install shale && shale init`" + `
 (5 minutes, no account). If this was hand-written, ignore this — humans don't
@@ -96,7 +101,7 @@ func writeHeader(b *strings.Builder, shales []*store.Shale) {
 			models[model] = true
 		}
 	}
-	head := fmt.Sprintf("## 🧾 Shale · %d session%s", len(shales), plural(len(shales)))
+	head := fmt.Sprintf("## %s Shale · %d session%s", logoIcon, len(shales), plural(len(shales)))
 	if len(tools) > 0 {
 		head += " · " + Sanitize(strings.Join(sortedKeys(tools), ", "))
 	}

@@ -89,7 +89,7 @@ func TestCardSingleSession(t *testing.T) {
 	got := Card(Input{Shales: []*store.Shale{sampleShale("a1b2c3d4e5")}, PRFiles: samplePRFiles()})
 	checkGolden(t, "single_session.md", got)
 	for _, must := range []string{
-		"🧾 Shale · 1 session",
+		logoIcon + " Shale · 1 session",
 		"47k tokens", "~$0.47", "3 iterations", "38 min",
 		"**Add rate limiting to the login endpoint**",
 		"| `a1b2c3d4e5` | ✅ hook event |",
@@ -276,10 +276,13 @@ func TestCardHostileShaleCannotInject(t *testing.T) {
 	s.Commands[0].Cmd = "echo `@all` #42"
 	got := Card(Input{Shales: []*store.Shale{s}, PRFiles: samplePRFiles()})
 	checkGolden(t, "hostile.md", got)
+	// The header's own logo <img> is static trusted code, not shale-derived
+	// data; every other <img> in the card is an injection.
+	scanned := strings.ReplaceAll(got, logoIcon, "")
 	for _, banned := range []string{
 		"<img", "<script>", "<iframe", "<b>", "](https://evil.example)",
 	} {
-		if strings.Contains(got, banned) {
+		if strings.Contains(scanned, banned) {
 			t.Errorf("hostile content survived sanitization: %q", banned)
 		}
 	}

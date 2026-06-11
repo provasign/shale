@@ -215,7 +215,16 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 		s.Intent.PromptCount = len(prompts)
 	}
 
+	// Hook-reported paths the repo itself refuses to track are not PR
+	// evidence: gitignored files (.env, credentials, key material) are
+	// exactly where secrets live, so they are dropped here. The tier-3 git
+	// fallback below never resurfaces them — git log/status do not report
+	// ignored files.
+	ignored := gitx.IgnoredPaths(opts.RepoRoot, touchOrder)
 	for _, p := range touchOrder {
+		if ignored[p] {
+			continue
+		}
 		s.Files = append(s.Files, *touches[p])
 	}
 

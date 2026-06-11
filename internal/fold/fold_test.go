@@ -222,6 +222,48 @@ func TestRunGitFallbackFillsMissingHookPaths(t *testing.T) {
 	}
 }
 
+func TestRunDropsGitIgnoredHookPaths(t *testing.T) {
+	root := initRepo(t)
+	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte(".env\nsecrets/\n*.pem\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	for _, ev := range []store.Event{
+		{Kind: store.KindIntent, At: t0, Title: "Wire up the payment client"},
+		{Kind: store.KindFileTouch, At: t0.Add(time.Minute), Path: "internal/pay/client.go", Op: "write"},
+		{Kind: store.KindFileTouch, At: t0.Add(2 * time.Minute), Path: ".env", Op: "write"},
+		{Kind: store.KindFileTouch, At: t0.Add(3 * time.Minute), Path: "secrets/stripe.json", Op: "write"},
+		{Kind: store.KindFileTouch, At: t0.Add(4 * time.Minute), Path: filepath.Join(root, "server.pem"), Op: "write"},
+		{Kind: store.KindCompletion, At: t0.Add(5 * time.Minute), Note: "done"},
+	} {
+		if err := store.AppendEvent(root, "SESSIGN01", ev); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if _, err := Run(Options{RepoRoot: root, Now: now}); err != nil {
+		t.Fatal(err)
+	}
+	s, err := store.Load(filepath.Join(root, ".shale", "SESSIGN01.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, f := range s.Files {
+		switch f.Path {
+		case ".env", "secrets/stripe.json", "server.pem":
+			t.Fatalf("gitignored path survived into evidence: %+v", f)
+		}
+	}
+	var sawClient bool
+	for _, f := range s.Files {
+		if f.Path == "internal/pay/client.go" && f.Via == store.ViaHook {
+			sawClient = true
+		}
+	}
+	if !sawClient {
+		t.Fatalf("non-ignored hook path missing: %+v", s.Files)
+	}
+}
+
 func TestRunHashOnlyPrivacy(t *testing.T) {
 	root := initRepo(t)
 	seedFullSession(t, root, "SESSHASH01")
