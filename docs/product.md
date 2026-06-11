@@ -59,26 +59,33 @@ agent asked to do, what did it touch, what ran, and what's unaccounted for?*
 
 Sections, top to bottom:
 
-1. **Header** — session count, tool, model, token/cost/iteration/duration
-   summary.
+1. **Header** — session count, tool, model, and known
+   token/cost/iteration/duration summary. When some sessions lack token or
+   cost telemetry, the summary says "known" instead of implying complete
+   totals.
 2. **Tamper flags** (when present) — transcript hash mismatch, evidence edited
    after capture. Rendered prominently as blockquote warnings.
 3. **Hook-fidelity notes** (when present) — sessions that only have
    git-derived file evidence are called out so reviewers know hook validation
    was not observed and token/command telemetry may be incomplete.
 4. **Intent** — the agent's declared goal (title + body), with declaration
-   time, session ID, and self-reported model when available. (When a session
-   carries a transcript — see §6 — the card links it with its SHA-256 pin;
-   current builds don't emit them.)
+   time in UTC, session ID, agent, self-reported model, token/cost/iteration
+   telemetry, and duration when available. Unknown telemetry is labeled
+   explicitly. (When a session carries a transcript — see §6 — the card links
+   it with its SHA-256 pin; current builds don't emit them.)
 5. **Completion** — the agent's closing self-report.
-6. **Changed files** — every file in the PR diff with its evidence state:
-   `✅ <session>` hook-verified · `◐ <session>` git-derived ("changed during
-   session — not hook-verified") · `—` no evidence. Sensitive paths
-   (dependency manifests, CI config, IaC, auth/crypto paths) are bolded and,
-   on large PRs, kept above the fold while the rest collapses into a
-   directory-grouped `<details>` block.
-7. **Checks recorded locally** — commands classified as tests/scans, with
-   exit codes and times, footnoted *"Advisory — CI is authoritative."*
+6. **Changed files** — every file in the PR diff, grouped by session ID in a
+   session-first table. The legend is plain language: `✅ hook event` means an
+   agent hook reported the edit; `◐ git fallback` means the file changed while
+   that session was active but no hook event was recorded; `—` means no
+   session evidence matched the file. Sensitive paths (dependency manifests,
+   CI config, IaC, auth/crypto paths) are bolded and, on large PRs, kept above
+   the fold while the rest collapses into a directory-grouped `<details>`
+   block.
+7. **Checks recorded locally** — commands classified as tests/scans,
+   attributed to their session and grouped session-first like the file table,
+   with exit codes and times in UTC, footnoted *"Advisory — CI is
+   authoritative."*
 
 Two invariants shape everything above:
 

@@ -110,6 +110,7 @@ func writeHeader(b *strings.Builder, shales []*store.Shale) {
 	var tokens, iterations int
 	var cost float64
 	var haveCost bool
+	var missingTokens, missingCost bool
 	var dur time.Duration
 	for _, s := range shales {
 		if c := s.Completion; c != nil {
@@ -118,7 +119,15 @@ func writeHeader(b *strings.Builder, shales []*store.Shale) {
 			if c.CostUSD > 0 {
 				cost += c.CostUSD
 				haveCost = true
+			} else {
+				missingCost = true
 			}
+			if c.TokensTotal == 0 {
+				missingTokens = true
+			}
+		} else {
+			missingTokens = true
+			missingCost = true
 		}
 		if s.Intent != nil && !s.FinalizedAt.IsZero() {
 			dur += s.FinalizedAt.Sub(s.Intent.DeclaredAt)
@@ -128,10 +137,18 @@ func writeHeader(b *strings.Builder, shales []*store.Shale) {
 		parts = append(parts, Sanitize(sortedKeys(models)[0]))
 	}
 	if tokens > 0 {
-		parts = append(parts, formatTokens(tokens)+" tokens")
+		label := formatTokens(tokens) + " tokens"
+		if missingTokens {
+			label = formatTokens(tokens) + " known tokens"
+		}
+		parts = append(parts, label)
 	}
 	if haveCost {
-		parts = append(parts, fmt.Sprintf("~$%.2f", cost))
+		label := fmt.Sprintf("~$%.2f", cost)
+		if missingCost {
+			label += " known cost"
+		}
+		parts = append(parts, label)
 	}
 	if iterations > 0 {
 		parts = append(parts, fmt.Sprintf("%d iteration%s", iterations, plural(iterations)))
@@ -167,8 +184,12 @@ func writeHookValidationNotes(b *strings.Builder, shales []*store.Shale) {
 	if len(unverified) == 0 {
 		return
 	}
-	fmt.Fprintf(b, "\n> ℹ️ Hook validation was not observed for session%s `%s`; file evidence is git-derived and token/command telemetry may be incomplete.\n",
-		plural(len(unverified)), Sanitize(strings.Join(unverified, "`, `")))
+	noun, verb := "Sessions", "have"
+	if len(unverified) == 1 {
+		noun, verb = "Session", "has"
+	}
+	fmt.Fprintf(b, "\n> ℹ️ %s `%s` only %s git fallback file evidence: Shale saw files change while the session was active, but no agent hook reported those edits. Token and command totals may be incomplete.\n",
+		noun, Sanitize(strings.Join(unverified, "`, `")), verb)
 }
 
 func writeIntents(b *strings.Builder, shales []*store.Shale, blobBase string) {
@@ -177,6 +198,10 @@ func writeIntents(b *strings.Builder, shales []*store.Shale, blobBase string) {
 	for _, s := range shales {
 		if s.Intent == nil || s.Intent.Title == "" {
 			continue
+		}
+		if wrote {
+			// Blank line between stacked intents so they don't run together.
+			b.WriteString("\n")
 		}
 		wrote = true
 		fmt.Fprintf(b, "> **%s**\n", Sanitize(s.Intent.Title))
@@ -187,9 +212,9 @@ func writeIntents(b *strings.Builder, shales []*store.Shale, blobBase string) {
 			}
 		}
 		meta := fmt.Sprintf("*Declared %s · session `%s`",
-			s.Intent.DeclaredAt.UTC().Format("2006-01-02 15:04"), Sanitize(displayID(s.ID)))
-		if model := modelForSession(s); model != "" {
-			meta += fmt.Sprintf(" · model `%s`", Sanitize(model))
+			formatTimeUTC(s.Intent.DeclaredAt), Sanitize(displayID(s.ID)))
+		for _, part := range sessionMetaParts(s, true) {
+			meta += " · " + part
 		}
 		if s.Transcript != nil {
 			hash := fmt.Sprintf("sha256:%s…", Sanitize(shortHash(s.Transcript.SHA256)))
@@ -221,11 +246,46 @@ func modelForSession(s *store.Shale) string {
 	return ""
 }
 
+func sessionMetaParts(s *store.Shale, includeUnknowns bool) []string {
+	var parts []string
+	if s.Agent.Tool != "" {
+		parts = append(parts, "agent `"+Sanitize(s.Agent.Tool)+"`")
+	}
+	if model := modelForSession(s); model != "" {
+		parts = append(parts, "model `"+Sanitize(model)+"`")
+	} else if includeUnknowns {
+		parts = append(parts, "model unknown")
+	}
+	if s.Completion != nil && s.Completion.TokensTotal > 0 {
+		parts = append(parts, formatTokens(s.Completion.TokensTotal)+" tokens")
+	} else if includeUnknowns {
+		parts = append(parts, "tokens unknown")
+	}
+	if s.Completion != nil && s.Completion.CostUSD > 0 {
+		parts = append(parts, fmt.Sprintf("~$%.2f", s.Completion.CostUSD))
+	} else if includeUnknowns {
+		parts = append(parts, "cost unknown")
+	}
+	if s.Completion != nil && s.Completion.Iterations > 0 {
+		parts = append(parts, fmt.Sprintf("%d iteration%s", s.Completion.Iterations, plural(s.Completion.Iterations)))
+	}
+	if s.Intent != nil && !s.FinalizedAt.IsZero() {
+		if d := s.FinalizedAt.Sub(s.Intent.DeclaredAt); d > 0 {
+			parts = append(parts, formatDuration(d))
+		}
+	}
+	return parts
+}
+
 func writeCompletions(b *strings.Builder, shales []*store.Shale) {
-	var notes []string
+	type note struct {
+		sessionID string
+		text      string
+	}
+	var notes []note
 	for _, s := range shales {
 		if s.Completion != nil && s.Completion.Note != "" {
-			notes = append(notes, s.Completion.Note)
+			notes = append(notes, note{sessionID: displayID(s.ID), text: s.Completion.Note})
 		}
 	}
 	if len(notes) == 0 {
@@ -233,7 +293,7 @@ func writeCompletions(b *strings.Builder, shales []*store.Shale) {
 	}
 	b.WriteString("\n### Completion\n")
 	for _, n := range notes {
-		fmt.Fprintf(b, "> %s\n", Sanitize(n))
+		fmt.Fprintf(b, "> **%s** · %s\n", code(Sanitize(n.sessionID)), Sanitize(n.text))
 	}
 }
 
@@ -241,6 +301,11 @@ func writeCompletions(b *strings.Builder, shales []*store.Shale) {
 type fileEvidence struct {
 	sessionID string
 	via       string
+}
+
+type fileRow struct {
+	path, sessionID, evidence, notes string
+	flagged                          bool
 }
 
 func writeFiles(b *strings.Builder, in Input) {
@@ -255,25 +320,23 @@ func writeFiles(b *strings.Builder, in Input) {
 		}
 	}
 
-	type row struct {
-		path, badge, notes string
-		flagged            bool
-	}
-	var rows []row
+	var rows []fileRow
 	seen := 0
 	for _, cf := range in.PRFiles {
-		r := row{path: cf.Path}
+		r := fileRow{path: cf.Path}
 		if ev, ok := evidence[cf.Path]; ok {
 			seen++
+			r.sessionID = ev.sessionID
 			switch ev.via {
 			case store.ViaHook:
-				r.badge = "✅ " + ev.sessionID
+				r.evidence = "✅ hook event"
 			default:
-				r.badge = "◐ " + ev.sessionID
-				r.notes = "changed during session — not hook-verified"
+				r.evidence = "◐ git fallback"
+				r.notes = "changed while session was active; no agent hook event recorded"
 			}
 		} else {
-			r.badge = "—"
+			r.sessionID = "—"
+			r.evidence = "—"
 			r.flagged = true
 		}
 		if reason := sensitiveReason(cf.Path); reason != "" {
@@ -291,16 +354,22 @@ func writeFiles(b *strings.Builder, in Input) {
 
 	untracked := len(in.PRFiles) - seen
 	if untracked > 0 {
-		fmt.Fprintf(b, "\n### Changed files (%d) — %d with evidence · %d untracked\n",
+		fmt.Fprintf(b, "\n### Changed files (%d) — %d with evidence · %d without session evidence\n",
 			len(in.PRFiles), seen, untracked)
 	} else {
 		fmt.Fprintf(b, "\n### Changed files (%d) — all with session evidence\n", len(in.PRFiles))
 	}
+	b.WriteString("\n*Legend: ✅ hook event = an agent hook reported the file edit; ◐ git fallback = the file changed while that session was active, but no hook event was recorded; — = no session evidence matched the PR file.*\n")
 
-	writeRow := func(r row) {
-		fmt.Fprintf(b, "| %s | %s | %s |\n", code(Sanitize(r.path)), r.badge, r.notes)
+	sort.SliceStable(rows, func(i, j int) bool {
+		return rowLess(rows[i], rows[j])
+	})
+
+	writeRow := func(r fileRow) {
+		fmt.Fprintf(b, "| %s | %s | %s | %s |\n",
+			code(Sanitize(r.sessionID)), r.evidence, code(Sanitize(r.path)), r.notes)
 	}
-	header := "| File | Session ID | Notes |\n|---|---|---|\n"
+	header := "| Session ID | Evidence | File | Notes |\n|---|---|---|---|\n"
 
 	if len(rows) <= maxFileRows {
 		b.WriteString(header)
@@ -337,7 +406,8 @@ func writeFiles(b *strings.Builder, in Input) {
 
 func writeChecks(b *strings.Builder, shales []*store.Shale) {
 	type check struct {
-		cmd, result, when string
+		sessionID, cmd, result, when string
+		at                           time.Time
 	}
 	var checks []check
 	for _, s := range shales {
@@ -354,16 +424,26 @@ func writeChecks(b *strings.Builder, shales []*store.Shale) {
 				}
 			}
 			checks = append(checks, check{
-				cmd: c.Cmd, result: result, when: c.At.UTC().Format("15:04"),
+				sessionID: displayID(s.ID), cmd: c.Cmd, result: result,
+				when: formatTimeUTC(c.At), at: c.At,
 			})
 		}
 	}
 	if len(checks) == 0 {
 		return
 	}
-	b.WriteString("\n### Checks recorded locally\n| Check | Result | When |\n|---|---|---|\n")
+	// Group by session, then chronological — same session-first ordering as the
+	// file table, so a multi-session PR shows which session ran each check
+	// instead of an undifferentiated duplicate list.
+	sort.SliceStable(checks, func(i, j int) bool {
+		if checks[i].sessionID != checks[j].sessionID {
+			return checks[i].sessionID < checks[j].sessionID
+		}
+		return checks[i].at.Before(checks[j].at)
+	})
+	b.WriteString("\n### Checks recorded locally\n| Session ID | Check | Result | When |\n|---|---|---|---|\n")
 	for _, c := range checks {
-		fmt.Fprintf(b, "| %s | %s | %s |\n", code(Sanitize(c.cmd)), c.result, c.when)
+		fmt.Fprintf(b, "| %s | %s | %s | %s |\n", code(Sanitize(c.sessionID)), code(Sanitize(c.cmd)), c.result, c.when)
 	}
 	b.WriteString("\n*Advisory — CI is authoritative.*\n")
 }
@@ -420,6 +500,39 @@ func displayID(id string) string {
 		return id[:8]
 	}
 	return id
+}
+
+func rowLess(a, b fileRow) bool {
+	aUnmatched := a.sessionID == "—"
+	bUnmatched := b.sessionID == "—"
+	if aUnmatched != bUnmatched {
+		return !aUnmatched
+	}
+	if a.sessionID != b.sessionID {
+		return a.sessionID < b.sessionID
+	}
+	if a.evidence != b.evidence {
+		return a.evidence < b.evidence
+	}
+	return a.path < b.path
+}
+
+func formatTimeUTC(t time.Time) string {
+	if t.IsZero() {
+		return "unknown time"
+	}
+	return t.UTC().Format("2006-01-02 15:04 UTC")
+}
+
+func formatDuration(d time.Duration) string {
+	switch {
+	case d >= time.Minute:
+		return fmt.Sprintf("%d min", int(d.Minutes()))
+	case d > 0:
+		return "< 1 min"
+	default:
+		return ""
+	}
 }
 
 func shortHash(h string) string {
