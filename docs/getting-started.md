@@ -62,6 +62,10 @@ Key points:
 brew install provasign/shale/shale
 ```
 
+Newer Homebrew versions ask you to trust third-party taps once — if brew
+refuses with "untrusted tap", run `brew trust provasign/shale` and retry.
+The same applies to `brew upgrade` later.
+
 **Direct download:** grab the archive for your platform from the
 [latest release](https://github.com/provasign/shale/releases/latest), verify
 the checksum if you like (each asset has a `.sha256`), and put `shale` on your

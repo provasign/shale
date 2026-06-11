@@ -51,6 +51,9 @@ shale init
 git add . && git commit -m "chore: enable shale" && git push
 ```
 
+> Newer Homebrew versions ask you to trust third-party taps once: if brew
+> refuses with "untrusted tap", run `brew trust provasign/shale` and retry.
+
 That's it. The next agent-authored PR carries a card. No Homebrew? Grab the
 latest [release](https://github.com/provasign/shale/releases/latest) and put
 the `shale` binary on your `PATH`.
