@@ -120,6 +120,10 @@ committed — so one person runs it and the whole team is covered on clone:
 - `.shale/` storage for redacted, schema-versioned evidence
 - `.github/workflows/shale.yml` — renders the card on PRs
 - a local pre-push hook that finalizes any session `shale done` didn't (safety net)
+- optionally — with your explicit consent (interactive prompt or
+  `--allow-agent-commands`) — a Claude Code permissions allowlist for exactly
+  `shale intent` / `shale done` / `shale note`, so your team's agents stop
+  asking permission for the evidence commands (and nothing else)
 
 Developers who want machine-wide capture across all repos can run
 `shale init --global`.

@@ -38,7 +38,7 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	}
 	switch args[0] {
 	case "init":
-		return cmdInit(args[1:], stdout, stderr)
+		return cmdInit(args[1:], stdin, stdout, stderr)
 	case "intent":
 		return cmdIntent(args[1:], stdout, stderr)
 	case "done":

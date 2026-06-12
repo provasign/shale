@@ -1,11 +1,15 @@
 package cli
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"golang.org/x/term"
 
 	"github.com/provasign/shale/internal/initx"
 	"github.com/provasign/shale/internal/store"
@@ -20,12 +24,13 @@ import (
 // Idempotent, and never destroys user content: steering blocks append, hook
 // config merges, scaffold skips existing files, foreign pre-push hooks are
 // left alone.
-func cmdInit(args []string, stdout, stderr io.Writer) int {
+func cmdInit(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("init", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	privacy := fs.String("privacy", store.PrivacyRedacted, "prompt privacy: full | redacted | hash-only")
 	hooksOnly := fs.Bool("hooks-only", false, "only install the pre-push hook (fork contributor path)")
 	global := fs.Bool("global", false, "also wire machine-wide hooks for agents installed on this machine")
+	allowAgent := fs.Bool("allow-agent-commands", false, "auto-approve shale intent/done/note for Claude Code via the committed allowlist")
 	if err := fs.Parse(args); err != nil {
 		return 1
 	}
@@ -56,6 +61,29 @@ func cmdInit(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintf(stdout, "  ✓ Wrote repo capture hooks   (%s — all agents, inert without shale on PATH)\n", join(written))
 		} else {
 			fmt.Fprintln(stdout, "  ✓ Repo capture hooks         (already present)")
+		}
+
+		// Auto-approving agent commands is a permission grant in a committed
+		// file — explicit consent only: the flag, or a yes at a real terminal.
+		// Never silently, never by default.
+		consent := *allowAgent
+		if !consent && isTerminal(stdin) {
+			fmt.Fprint(stdout, "  ? Auto-approve shale evidence commands (shale intent/done/note) for Claude Code?\n"+
+				"    Writes a permissions allowlist into the committed .claude/settings.json so your\n"+
+				"    team's agents stop prompting for exactly these three commands. [y/N] ")
+			consent = readYes(stdin)
+		}
+		if consent {
+			if changed, err := initx.InstallClaudeAllowlist(filepath.Join(root, ".claude", "settings.json")); err != nil {
+				fmt.Fprintln(stderr, "shale init: allowlist:", err)
+				ok = false
+			} else if changed {
+				fmt.Fprintln(stdout, "  ✓ Claude auto-approve        (shale intent/done/note allowlisted in .claude/settings.json)")
+			} else {
+				fmt.Fprintln(stdout, "  ✓ Claude auto-approve        (already present)")
+			}
+		} else {
+			fmt.Fprintln(stdout, "  – Claude auto-approve        (not configured — rerun with --allow-agent-commands to stop permission prompts)")
 		}
 
 		if written, err := initx.Scaffold(root, *privacy); err != nil {
@@ -120,6 +148,25 @@ func cmdDoctor(stdout io.Writer) int {
 	}
 	fmt.Fprintln(stdout, "all checks passed")
 	return 0
+}
+
+// isTerminal reports whether r is an interactive terminal — the only place
+// a consent prompt may appear. Piped, scripted, and CI runs (including
+// </dev/null, which a char-device check would misclassify) never see it.
+func isTerminal(r io.Reader) bool {
+	f, ok := r.(*os.File)
+	return ok && term.IsTerminal(int(f.Fd()))
+}
+
+// readYes reads one line; only an explicit yes opts in. Default is No —
+// this writes a permission grant into a committed file.
+func readYes(r io.Reader) bool {
+	line, _ := bufio.NewReader(r).ReadString('\n')
+	switch strings.TrimSpace(strings.ToLower(line)) {
+	case "y", "yes":
+		return true
+	}
+	return false
 }
 
 func join(parts []string) string {

@@ -105,11 +105,18 @@ func RemoveRepoHooks(repoRoot string) ([]string, error) {
 	var changed []string
 
 	claudeRel := filepath.Join(".claude", "settings.json")
-	did, err := RemoveClaudeHooks(filepath.Join(repoRoot, claudeRel), true)
+	claudeAbs := filepath.Join(repoRoot, claudeRel)
+	// Allowlist first, so a file init alone created is empty by the time the
+	// hook removal decides whether to delete it.
+	didAllow, err := RemoveClaudeAllowlist(claudeAbs)
 	if err != nil {
 		return changed, err
 	}
-	if did {
+	did, err := RemoveClaudeHooks(claudeAbs, true)
+	if err != nil {
+		return changed, err
+	}
+	if didAllow || did {
 		changed = append(changed, claudeRel)
 	}
 

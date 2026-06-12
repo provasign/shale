@@ -499,3 +499,45 @@ func TestFinalizeHookWarningRequiresOptIn(t *testing.T) {
 		t.Fatal("opted-in repo with dead hook must warn")
 	}
 }
+
+func TestClaudeAllowlistInstallAndRemove(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, ".claude", "settings.json")
+
+	// Fresh install.
+	changed, err := InstallClaudeAllowlist(path)
+	if err != nil || !changed {
+		t.Fatalf("install: changed=%v err=%v", changed, err)
+	}
+	// Idempotent.
+	changed, err = InstallClaudeAllowlist(path)
+	if err != nil || changed {
+		t.Fatalf("re-install: changed=%v err=%v", changed, err)
+	}
+
+	// User adds their own entry alongside ours; removal must keep it.
+	raw, _ := os.ReadFile(path)
+	var settings map[string]any
+	json.Unmarshal(raw, &settings)
+	perms := settings["permissions"].(map[string]any)
+	perms["allow"] = append(perms["allow"].([]any), "Bash(go test *)")
+	out, _ := json.MarshalIndent(settings, "", "  ")
+	os.WriteFile(path, out, 0o644)
+
+	changed, err = RemoveClaudeAllowlist(path)
+	if err != nil || !changed {
+		t.Fatalf("remove: changed=%v err=%v", changed, err)
+	}
+	raw, _ = os.ReadFile(path)
+	if strings.Contains(string(raw), "shale intent") || strings.Contains(string(raw), "shale done") {
+		t.Fatalf("our entries survived removal: %s", raw)
+	}
+	if !strings.Contains(string(raw), "Bash(go test *)") {
+		t.Fatalf("user entry lost: %s", raw)
+	}
+	// Nothing of ours left: removal is a no-op.
+	changed, err = RemoveClaudeAllowlist(path)
+	if err != nil || changed {
+		t.Fatalf("re-remove: changed=%v err=%v", changed, err)
+	}
+}

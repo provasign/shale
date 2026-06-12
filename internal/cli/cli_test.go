@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -365,6 +366,76 @@ func TestDoneWarnsWhenFallbackHookIsDead(t *testing.T) {
 	}
 	if !strings.Contains(errOut, "does not run `shale finalize`") || !strings.Contains(errOut, "shale doctor") {
 		t.Fatalf("done must warn about the dead hook on fallback, got: %q", errOut)
+	}
+}
+
+// The Claude allowlist is consent-only: absent by default, written with
+// --allow-agent-commands, scoped to the three evidence commands, and removed
+// by uninstall --repo while user permissions survive.
+func TestInitAllowAgentCommands(t *testing.T) {
+	root := chrepo(t)
+
+	// Default init: no permission grant, but the pointer line is shown.
+	code, out, _ := run(t, "", "init")
+	if code != 0 {
+		t.Fatalf("init: %d", code)
+	}
+	if !strings.Contains(out, "--allow-agent-commands") {
+		t.Fatalf("init must mention the opt-in: %s", out)
+	}
+	raw, _ := os.ReadFile(filepath.Join(root, ".claude", "settings.json"))
+	if strings.Contains(string(raw), "permissions") {
+		t.Fatalf("permissions written without consent: %s", raw)
+	}
+
+	// Explicit opt-in.
+	code, out, _ = run(t, "", "init", "--allow-agent-commands")
+	if code != 0 || !strings.Contains(out, "Claude auto-approve") {
+		t.Fatalf("opt-in init: code=%d out=%s", code, out)
+	}
+	raw, _ = os.ReadFile(filepath.Join(root, ".claude", "settings.json"))
+	for _, must := range []string{"Bash(shale intent*)", "Bash(shale done*)", "Bash(shale note*)"} {
+		if !strings.Contains(string(raw), must) {
+			t.Fatalf("allowlist missing %q: %s", must, raw)
+		}
+	}
+	if strings.Contains(string(raw), "Bash(shale *)") {
+		t.Fatal("wildcard shale permission must never be written")
+	}
+
+	// Idempotent.
+	_, out, _ = run(t, "", "init", "--allow-agent-commands")
+	if !strings.Contains(out, "already present") {
+		t.Fatalf("re-init not idempotent: %s", out)
+	}
+
+	// Uninstall --repo removes ours, keeps the user's.
+	var settings map[string]any
+	json.Unmarshal(raw, &settings)
+	perms := settings["permissions"].(map[string]any)
+	perms["allow"] = append(perms["allow"].([]any), "Bash(go vet *)")
+	out2, _ := json.MarshalIndent(settings, "", "  ")
+	os.WriteFile(filepath.Join(root, ".claude", "settings.json"), out2, 0o644)
+
+	code, _, errOut := run(t, "", "uninstall", "--repo")
+	if code != 0 {
+		t.Fatalf("uninstall: %d %s", code, errOut)
+	}
+	raw, _ = os.ReadFile(filepath.Join(root, ".claude", "settings.json"))
+	if strings.Contains(string(raw), "shale intent") {
+		t.Fatalf("shale permissions survived uninstall: %s", raw)
+	}
+	if !strings.Contains(string(raw), "Bash(go vet *)") {
+		t.Fatalf("user permission lost in uninstall: %s", raw)
+	}
+}
+
+func TestReadYesDefaultsNo(t *testing.T) {
+	cases := map[string]bool{"y\n": true, "yes\n": true, "Y\n": true, "n\n": false, "\n": false, "": false, "sure\n": false}
+	for in, want := range cases {
+		if got := readYes(strings.NewReader(in)); got != want {
+			t.Errorf("readYes(%q) = %v, want %v", in, got, want)
+		}
 	}
 }
 
