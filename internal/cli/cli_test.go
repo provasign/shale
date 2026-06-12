@@ -431,7 +431,9 @@ func TestInitAllowAgentCommands(t *testing.T) {
 }
 
 func TestReadYesDefaultsNo(t *testing.T) {
-	cases := map[string]bool{"y\n": true, "yes\n": true, "Y\n": true, "n\n": false, "\n": false, "": false, "sure\n": false}
+	// "y\r" is load-bearing: terminals without ICRNL deliver Enter as a bare
+	// CR (seen in the wild, 2026-06-12) — the prompt must not hang on it.
+	cases := map[string]bool{"y\n": true, "yes\n": true, "Y\n": true, "y\r": true, "y\r\n": true, "n\n": false, "n\r": false, "\n": false, "": false, "sure\n": false}
 	for in, want := range cases {
 		if got := readYes(strings.NewReader(in)); got != want {
 			t.Errorf("readYes(%q) = %v, want %v", in, got, want)

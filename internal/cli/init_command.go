@@ -160,9 +160,22 @@ func isTerminal(r io.Reader) bool {
 
 // readYes reads one line; only an explicit yes opts in. Default is No —
 // this writes a permission grant into a committed file.
+//
+// The line ends at '\n' OR '\r': terminals left without ICRNL translation
+// (seen in the wild with zsh/p10k setups) deliver Enter as a bare '\r', and
+// waiting for '\n' there hangs the prompt with the user's keystrokes
+// echoing as ^M.
 func readYes(r io.Reader) bool {
-	line, _ := bufio.NewReader(r).ReadString('\n')
-	switch strings.TrimSpace(strings.ToLower(line)) {
+	br := bufio.NewReader(r)
+	var line []byte
+	for len(line) < 64 {
+		c, err := br.ReadByte()
+		if err != nil || c == '\n' || c == '\r' {
+			break
+		}
+		line = append(line, c)
+	}
+	switch strings.TrimSpace(strings.ToLower(string(line))) {
 	case "y", "yes":
 		return true
 	}
