@@ -40,10 +40,14 @@ func cmdFinalize(args []string, stdout, stderr io.Writer) int {
 			return 1
 		}
 		if committed {
-			// Git resolves the push set before pre-push hooks run, so a commit
-			// created here rides the NEXT push — say so, or the user discovers
-			// it as an unpushed commit and a confusing second push.
-			fmt.Fprintln(stdout, "shale: evidence committed — a push already in flight does not include it; it ships with your next push")
+			// Whether a commit created in a pre-push hook rides that same push
+			// is git-internal and inconsistent (observed git 2.50: included
+			// when the push transfers something, stranded when the push is
+			// computed up-to-date; file:// remotes differ from https). Git's
+			// status line and the remote-tracking ref are computed pre-hook
+			// either way, so the user can't tell from the push output. Say
+			// the only thing that is true in every case.
+			fmt.Fprintln(stdout, "shale: evidence committed — if the push in flight does not include it, it ships with your next push")
 		}
 	}
 	return 0
