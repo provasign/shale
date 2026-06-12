@@ -262,14 +262,19 @@ func TestFinalizeAndRenderLocalEndToEnd(t *testing.T) {
 		}
 	}
 	run(t, "", "intent", "Add rate limiting", "--body", "Redis based")
-	run(t, "", "done", "--note", "done", "--tokens-in", "1000", "--tokens-out", "200", "--model", "claude-fable-5")
-
-	code, out, errOut := run(t, "", "finalize")
-	if code != 0 || !strings.Contains(out, "finalized") {
-		t.Fatalf("finalize: code=%d out=%q err=%q", code, out, errOut)
+	// done finalizes on the spot now; the explicit finalize below must find
+	// nothing left to do.
+	_, doneOut, _ := run(t, "", "done", "--note", "done", "--tokens-in", "1000", "--tokens-out", "200", "--model", "claude-fable-5")
+	if !strings.Contains(doneOut, "evidence committed") {
+		t.Fatalf("done did not finalize: %q", doneOut)
 	}
 	if _, err := os.Stat(filepath.Join(root, ".shale", "e2e-sess.yaml")); err != nil {
 		t.Fatal("shale YAML not written")
+	}
+
+	code, out, errOut := run(t, "", "finalize")
+	if code != 0 || !strings.Contains(out, "nothing to finalize") {
+		t.Fatalf("finalize: code=%d out=%q err=%q", code, out, errOut)
 	}
 
 	// Idempotent.
@@ -289,10 +294,10 @@ func TestFinalizeAndRenderLocalEndToEnd(t *testing.T) {
 	}
 }
 
-// A foreign pre-push hook means init must skip (naming the hook's path) and
-// `done` must warn that evidence will never publish — the silent-failure
-// mode two users hit on the same morning.
-func TestSkippedHookIsLoudAtInitAndDone(t *testing.T) {
+// A foreign pre-push hook means init must skip (naming the hook's path) —
+// but finalize-on-done publishes the evidence anyway, so the dead hook no
+// longer matters for agent sessions.
+func TestForeignHookStillPublishesViaDone(t *testing.T) {
 	root := chrepo(t)
 	foreign := filepath.Join(root, ".git", "hooks", "pre-push")
 	os.MkdirAll(filepath.Dir(foreign), 0o755)
@@ -309,28 +314,61 @@ func TestSkippedHookIsLoudAtInitAndDone(t *testing.T) {
 	}
 
 	run(t, "", "intent", "Quick fix")
-	code, _, errOut := run(t, "", "done", "--note", "fixed")
+	code, out, errOut := run(t, "", "done", "--note", "fixed")
 	if code != 0 {
 		t.Fatalf("done: %d", code)
 	}
-	if !strings.Contains(errOut, "does not run `shale finalize`") || !strings.Contains(errOut, "shale doctor") {
-		t.Fatalf("done must warn about the dead hook, got: %q", errOut)
+	if !strings.Contains(out, "evidence committed") {
+		t.Fatalf("done must finalize and commit despite the dead hook: %q", out)
 	}
-
-	// User follows the advice: append the finalize line. Warning stops.
-	f, err := os.OpenFile(foreign, os.O_APPEND|os.O_WRONLY, 0o755)
-	if err != nil {
-		t.Fatal(err)
+	if errOut != "" {
+		t.Fatalf("evidence published — no warning warranted: %q", errOut)
 	}
-	f.WriteString("shale finalize --auto-commit || true\n")
-	f.Close()
-	code, _, errOut = run(t, "", "done", "--note", "fixed again")
-	if code != 0 || strings.Contains(errOut, "shale finalize") {
-		t.Fatalf("healthy hook must not warn: code=%d err=%q", code, errOut)
+	matches, _ := filepath.Glob(filepath.Join(root, ".shale", "*.yaml"))
+	var sessYAML []string
+	for _, m := range matches {
+		if filepath.Base(m) != "config.yaml" {
+			sessYAML = append(sessYAML, m)
+		}
+	}
+	if len(sessYAML) != 1 {
+		t.Fatalf("evidence yaml = %v", sessYAML)
+	}
+	log := exec.Command("git", "log", "-1", "--pretty=%s")
+	log.Dir = root
+	subj, _ := log.Output()
+	if !strings.Contains(string(subj), "chore(shale): session evidence") {
+		t.Fatalf("evidence commit missing, last commit: %s", subj)
 	}
 }
 
-// With shale's own hook installed, done stays a single-line ack.
+// When finalize-on-done cannot commit (index locked here), done falls back to
+// the push-time path — and with a dead pre-push hook it must say so.
+func TestDoneWarnsWhenFallbackHookIsDead(t *testing.T) {
+	root := chrepo(t)
+	foreign := filepath.Join(root, ".git", "hooks", "pre-push")
+	os.MkdirAll(filepath.Dir(foreign), 0o755)
+	os.WriteFile(foreign, []byte("#!/bin/sh\nnpm run lint\n"), 0o755)
+	run(t, "", "init")
+	run(t, "", "intent", "Quick fix")
+	if err := os.WriteFile(filepath.Join(root, ".git", "index.lock"), []byte{}, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	defer os.Remove(filepath.Join(root, ".git", "index.lock"))
+
+	code, out, errOut := run(t, "", "done", "--note", "fixed")
+	if code != 0 {
+		t.Fatalf("done must stay fail-open: %d", code)
+	}
+	if !strings.Contains(out, "finalize runs on push") {
+		t.Fatalf("fallback ack missing: %q", out)
+	}
+	if !strings.Contains(errOut, "does not run `shale finalize`") || !strings.Contains(errOut, "shale doctor") {
+		t.Fatalf("done must warn about the dead hook on fallback, got: %q", errOut)
+	}
+}
+
+// With a healthy setup, done commits evidence and stays warning-free.
 func TestDoneQuietWhenHookHealthy(t *testing.T) {
 	chrepo(t)
 	run(t, "", "init")
@@ -339,8 +377,11 @@ func TestDoneQuietWhenHookHealthy(t *testing.T) {
 	if errOut != "" {
 		t.Fatalf("unexpected warning: %q", errOut)
 	}
-	if !strings.Contains(out, "completion recorded") {
+	if !strings.Contains(out, "completion recorded") || !strings.Contains(out, "evidence committed") {
 		t.Fatalf("ack missing: %q", out)
+	}
+	if strings.Count(out, "\n") != 1 {
+		t.Fatalf("done ack must stay a single line (context budget): %q", out)
 	}
 }
 

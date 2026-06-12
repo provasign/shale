@@ -4,9 +4,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/provasign/shale/internal/fold"
+	"github.com/provasign/shale/internal/gitx"
 	"github.com/provasign/shale/internal/initx"
 	"github.com/provasign/shale/internal/store"
 )
@@ -66,8 +70,12 @@ func cmdIntent(args []string, stdout, stderr io.Writer) int {
 	return 0
 }
 
-// cmdDone is the agent-called completion report — the semantic act, distinct
-// from the mechanical `shale finalize` (pre-push).
+// cmdDone is the agent-called completion report — the semantic act. In repos
+// that opted in (a .shale/ scaffold exists) it also finalizes and commits the
+// evidence on the spot: the commit then exists BEFORE the user pushes, so it
+// rides their normal push with no pre-push hook involved and no
+// does-the-hook-commit-make-the-push ambiguity. The pre-push hook remains the
+// mechanical safety net for sessions that never got a done.
 func cmdDone(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("done", flag.ContinueOnError)
 	fs.SetOutput(stderr)
@@ -100,11 +108,26 @@ func cmdDone(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "shale done:", err)
 		return 1
 	}
+	// Finalize-on-done, gated on the committed scaffold marker (not the bare
+	// .shale/ dir — our own AppendEvent above just created that). Fail-open:
+	// any problem falls back to the pre-push hook path and must not fail the
+	// done.
+	committed := false
+	if _, statErr := os.Stat(filepath.Join(root, ".shale", "schema-version")); statErr == nil {
+		res, ferr := fold.Run(fold.Options{RepoRoot: root, Privacy: initx.LoadConfig(root).Privacy})
+		if ferr == nil && len(res.Written) > 0 {
+			committed, _ = gitx.AutoCommit(root, res.Written, "chore(shale): session evidence")
+		}
+	}
+	if committed {
+		fmt.Fprintf(stdout, "✓ completion recorded (session %s) — evidence committed; publishes with your push\n", short(sessionID))
+		return 0
+	}
 	fmt.Fprintf(stdout, "✓ completion recorded (session %s) — finalize runs on push\n", short(sessionID))
 	// The one silent-failure mode worth breaking the single-line ack for:
-	// a pre-push hook that never runs finalize means everything recorded so
-	// far publishes nowhere, and `done` is the last moment an agent can relay
-	// that to the user.
+	// evidence wasn't committed here, and a pre-push hook that never runs
+	// finalize means it will publish nowhere. `done` is the last moment an
+	// agent can relay that to the user.
 	if warn := initx.FinalizeHookWarning(root); warn != "" {
 		fmt.Fprintln(stderr, warn)
 	}

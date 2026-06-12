@@ -177,10 +177,11 @@ func IgnoredPaths(root string, paths []string) map[string]bool {
 	return ignored
 }
 
-// AutoCommit stages the given paths and commits them with the standard
-// evidence message (ADR D3). Reports whether a commit was actually created —
-// callers in a pre-push hook must tell the user the new commit is NOT part of
-// the push already in flight.
+// AutoCommit stages the given paths and commits them — and ONLY them — with
+// the standard evidence message (ADR D3). It runs mid-session (`shale done`)
+// and from the pre-push hook, when the user may have their own work staged:
+// `--only` with the pathspec keeps that work staged and out of the evidence
+// commit. Reports whether a commit was actually created.
 func AutoCommit(root string, paths []string, message string) (committed bool, err error) {
 	if len(paths) == 0 {
 		return false, nil
@@ -189,11 +190,12 @@ func AutoCommit(root string, paths []string, message string) (committed bool, er
 	if _, err := run(root, args...); err != nil {
 		return false, err
 	}
-	staged, _ := run(root, "diff", "--cached", "--name-only")
+	staged, _ := run(root, append([]string{"diff", "--cached", "--name-only", "--"}, paths...)...)
 	if strings.TrimSpace(staged) == "" {
 		return false, nil
 	}
-	if _, err := run(root, "commit", "--no-verify", "-m", message); err != nil {
+	commit := append([]string{"commit", "--no-verify", "--only", "-m", message, "--"}, paths...)
+	if _, err := run(root, commit...); err != nil {
 		return false, err
 	}
 	return true, nil

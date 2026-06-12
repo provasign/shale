@@ -22,14 +22,15 @@ Agent edits files
 
 Agent calls: shale done --note "…"
   → appends completion event
-
-git push
-  → pre-push hook fires:
-     shale finalize --auto-commit
+  → finalizes on the spot:
      reads .shale/local/<session>.jsonl
      redacts → folds → writes .shale/<session>.yaml
      commits the evidence file
-     push continues (with evidence commit)
+
+git push
+  → evidence commit rides along
+  → pre-push hook runs shale finalize --auto-commit
+    as a safety net for sessions without a done
                                               PR opened / updated
                                                 → pull_request_target fires
                                                   (runs workflow from default branch)
@@ -46,8 +47,10 @@ git push
 Key points:
 - **Everything on the left stays on the laptop** — events are in gitignored
   `.shale/local/`; raw prompts are never included in committed evidence.
-- **The evidence commit rides with your push** — `shale finalize` commits it
-  during the pre-push hook, so you push once and the evidence lands with the code.
+- **The evidence commit rides with your push** — `shale done` finalizes and
+  commits on the spot, so the commit exists before you push and lands with the
+  code. The pre-push hook is the safety net for sessions that never called
+  `done`.
 - **The renderer never touches your code** — it reads the diff and `.shale/`
   files through the GitHub API. No checkout means no privilege escalation on
   `pull_request_target`.

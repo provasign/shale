@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -107,6 +108,40 @@ func TestFilesChangedSince(t *testing.T) {
 		if len(fc.Ops) != len(wantOps) || fc.Ops[0] != wantOps[0] {
 			t.Errorf("%s ops = %v, want %v", fc.Path, fc.Ops, wantOps)
 		}
+	}
+}
+
+// AutoCommit runs mid-session now (`shale done`): the user's own staged work
+// must stay staged and out of the evidence commit.
+func TestAutoCommitLeavesUserStagingAlone(t *testing.T) {
+	root := initRepo(t)
+	writeFile(t, root, "base.txt", "x")
+	if _, err := AutoCommit(root, []string{"base.txt"}, "base"); err != nil {
+		t.Fatal(err)
+	}
+	writeFile(t, root, "wip.go", "package wip")
+	stage := exec.Command("git", "add", "wip.go")
+	stage.Dir = root
+	if out, err := stage.CombinedOutput(); err != nil {
+		t.Fatalf("git add: %v\n%s", err, out)
+	}
+	writeFile(t, root, ".shale/s.yaml", "shale_version: \"0\"\n")
+
+	committed, err := AutoCommit(root, []string{".shale/s.yaml"}, "evidence")
+	if err != nil || !committed {
+		t.Fatalf("committed=%v err=%v", committed, err)
+	}
+	show := exec.Command("git", "show", "--name-only", "--pretty=format:", "HEAD")
+	show.Dir = root
+	out, _ := show.Output()
+	if strings.Contains(string(out), "wip.go") || !strings.Contains(string(out), ".shale/s.yaml") {
+		t.Fatalf("evidence commit contents wrong:\n%s", out)
+	}
+	staged := exec.Command("git", "diff", "--cached", "--name-only")
+	staged.Dir = root
+	out, _ = staged.Output()
+	if !strings.Contains(string(out), "wip.go") {
+		t.Fatalf("user's staged work lost: %q", out)
 	}
 }
 

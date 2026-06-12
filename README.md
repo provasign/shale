@@ -104,8 +104,8 @@ honest about what it doesn't know.
 agent receives task
   → steering prompt asks the agent to declare:  shale intent "…"
   → hooks + CLI record session evidence locally (redacted)
-  → agent closes with:  shale done
-  → git push runs shale finalize  (evidence committed under .shale/)
+  → agent closes with:  shale done  (evidence finalized + committed under .shale/)
+  → git push carries the evidence; the pre-push hook finalizes anything left
   → CI renders the card via the GitHub Action  (API-only, no checkout)
 ```
 
@@ -119,7 +119,7 @@ committed — so one person runs it and the whole team is covered on clone:
   installed Shale
 - `.shale/` storage for redacted, schema-versioned evidence
 - `.github/workflows/shale.yml` — renders the card on PRs
-- a local pre-push hook that finalizes evidence before push
+- a local pre-push hook that finalizes any session `shale done` didn't (safety net)
 
 Developers who want machine-wide capture across all repos can run
 `shale init --global`.
