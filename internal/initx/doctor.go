@@ -86,6 +86,12 @@ func FinalizeHookWarning(repoRoot string) string {
 	if _, err := os.Stat(filepath.Join(repoRoot, ".git")); err != nil {
 		return ""
 	}
+	// Only opted-in repos (committed scaffold marker) get the lecture — in a
+	// repo that never ran `shale init`, nothing was ever going to publish and
+	// the warning is pure noise.
+	if _, err := os.Stat(filepath.Join(repoRoot, ".shale", "schema-version")); err != nil {
+		return ""
+	}
 	if HookRunsFinalize(repoRoot) {
 		return ""
 	}

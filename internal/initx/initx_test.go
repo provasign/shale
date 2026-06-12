@@ -479,3 +479,23 @@ func TestDoctor(t *testing.T) {
 		}
 	}
 }
+
+// A repo that never opted in (no scaffold marker) must not get the dead-hook
+// lecture — nothing there was ever going to publish.
+func TestFinalizeHookWarningRequiresOptIn(t *testing.T) {
+	root := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(root, ".git", "hooks"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if w := FinalizeHookWarning(root); w != "" {
+		t.Fatalf("warned in a non-opted-in repo: %q", w)
+	}
+	// Opt in: scaffold marker present, hook still dead → warn.
+	if err := os.MkdirAll(filepath.Join(root, ".shale"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(root, ".shale", "schema-version"), []byte("0\n"), 0o644)
+	if w := FinalizeHookWarning(root); w == "" {
+		t.Fatal("opted-in repo with dead hook must warn")
+	}
+}
