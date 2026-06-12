@@ -289,6 +289,61 @@ func TestFinalizeAndRenderLocalEndToEnd(t *testing.T) {
 	}
 }
 
+// A foreign pre-push hook means init must skip (naming the hook's path) and
+// `done` must warn that evidence will never publish — the silent-failure
+// mode two users hit on the same morning.
+func TestSkippedHookIsLoudAtInitAndDone(t *testing.T) {
+	root := chrepo(t)
+	foreign := filepath.Join(root, ".git", "hooks", "pre-push")
+	os.MkdirAll(filepath.Dir(foreign), 0o755)
+	if err := os.WriteFile(foreign, []byte("#!/bin/sh\nnpm run lint\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+
+	code, out, _ := run(t, "", "init")
+	if code != 0 {
+		t.Fatalf("init: %d", code)
+	}
+	if !strings.Contains(out, "Pre-push hook skipped") || !strings.Contains(out, filepath.Join(".git", "hooks", "pre-push")) {
+		t.Fatalf("skip message must name the hook path:\n%s", out)
+	}
+
+	run(t, "", "intent", "Quick fix")
+	code, _, errOut := run(t, "", "done", "--note", "fixed")
+	if code != 0 {
+		t.Fatalf("done: %d", code)
+	}
+	if !strings.Contains(errOut, "does not run `shale finalize`") || !strings.Contains(errOut, "shale doctor") {
+		t.Fatalf("done must warn about the dead hook, got: %q", errOut)
+	}
+
+	// User follows the advice: append the finalize line. Warning stops.
+	f, err := os.OpenFile(foreign, os.O_APPEND|os.O_WRONLY, 0o755)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.WriteString("shale finalize --auto-commit || true\n")
+	f.Close()
+	code, _, errOut = run(t, "", "done", "--note", "fixed again")
+	if code != 0 || strings.Contains(errOut, "shale finalize") {
+		t.Fatalf("healthy hook must not warn: code=%d err=%q", code, errOut)
+	}
+}
+
+// With shale's own hook installed, done stays a single-line ack.
+func TestDoneQuietWhenHookHealthy(t *testing.T) {
+	chrepo(t)
+	run(t, "", "init")
+	run(t, "", "intent", "Quick fix")
+	_, out, errOut := run(t, "", "done", "--note", "fixed")
+	if errOut != "" {
+		t.Fatalf("unexpected warning: %q", errOut)
+	}
+	if !strings.Contains(out, "completion recorded") {
+		t.Fatalf("ack missing: %q", out)
+	}
+}
+
 func TestFinalizeAutoCommit(t *testing.T) {
 	root := chrepo(t)
 	run(t, "", "init")

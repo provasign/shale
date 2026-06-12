@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/provasign/shale/internal/initx"
 	"github.com/provasign/shale/internal/store"
 )
 
@@ -100,6 +101,13 @@ func cmdDone(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	fmt.Fprintf(stdout, "✓ completion recorded (session %s) — finalize runs on push\n", short(sessionID))
+	// The one silent-failure mode worth breaking the single-line ack for:
+	// a pre-push hook that never runs finalize means everything recorded so
+	// far publishes nowhere, and `done` is the last moment an agent can relay
+	// that to the user.
+	if warn := initx.FinalizeHookWarning(root); warn != "" {
+		fmt.Fprintln(stderr, warn)
+	}
 	return 0
 }
 

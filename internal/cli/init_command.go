@@ -4,6 +4,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/provasign/shale/internal/initx"
 	"github.com/provasign/shale/internal/store"
@@ -84,7 +86,11 @@ func cmdInit(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "shale init: pre-push hook:", err)
 		ok = false
 	case skipped:
-		fmt.Fprintln(stdout, "  ! Pre-push hook skipped      (existing hook found — add `shale finalize --auto-commit` to it)")
+		if _, statErr := os.Stat(filepath.Join(root, ".git")); statErr != nil {
+			fmt.Fprintln(stdout, "  ! Pre-push hook skipped      (not a git repo — run `git init`, then `shale init` again)")
+		} else {
+			fmt.Fprintf(stdout, "  ! Pre-push hook skipped      (existing hook at %s — add `shale finalize --auto-commit` to it, or evidence will never publish)\n", initx.DisplayHookPath(root))
+		}
 	default:
 		fmt.Fprintln(stdout, "  ✓ Installed pre-push hook    (runs shale finalize)")
 	}

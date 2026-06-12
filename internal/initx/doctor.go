@@ -51,21 +51,50 @@ func Doctor(repoRoot string) []Check {
 			"REMOVE the checkout step from shale.yml — pull_request_target + checkout of PR code is a privilege-escalation hole")
 	}
 
-	hookPath := PrePushHookPath(repoRoot)
-	hookLoc := hookPath
-	if rel, rerr := filepath.Rel(repoRoot, hookPath); rerr == nil && !strings.HasPrefix(rel, "..") {
-		hookLoc = rel
-	}
-	raw, err := os.ReadFile(hookPath)
-	hookOK := err == nil && strings.Contains(string(raw), "shale finalize")
-	add("pre-push hook installed", hookOK,
-		fmt.Sprintf("run `shale init` — hook location is %s (honors core.hooksPath); an existing non-shale hook there must call `shale finalize --auto-commit` itself", hookLoc))
+	add("pre-push hook installed", HookRunsFinalize(repoRoot),
+		fmt.Sprintf("run `shale init` — hook location is %s (honors core.hooksPath); an existing non-shale hook there must call `shale finalize --auto-commit` itself", DisplayHookPath(repoRoot)))
 
 	// Events flowing: most recent capture activity, active or archived.
 	add("capture events seen", lastActivity(repoRoot) != "",
 		"no session events yet — run an agent session, or check hooks with the items above")
 
 	return checks
+}
+
+// HookRunsFinalize reports whether the repo's effective pre-push hook exists
+// and runs `shale finalize` — ours, or a user hook that added the line.
+func HookRunsFinalize(repoRoot string) bool {
+	raw, err := os.ReadFile(PrePushHookPath(repoRoot))
+	return err == nil && strings.Contains(string(raw), "shale finalize")
+}
+
+// DisplayHookPath returns the effective pre-push hook path, repo-relative
+// when possible — for messages a user must act on.
+func DisplayHookPath(repoRoot string) string {
+	p := PrePushHookPath(repoRoot)
+	if rel, err := filepath.Rel(repoRoot, p); err == nil && !strings.HasPrefix(rel, "..") {
+		return rel
+	}
+	return p
+}
+
+// FinalizeHookWarning returns a one-line warning when recorded evidence can
+// never publish: a git repo whose pre-push hook does not run `shale
+// finalize` (the classic cause: init skipped an existing hook and the `!`
+// line scrolled past). Empty when healthy, or when not a git repo.
+func FinalizeHookWarning(repoRoot string) string {
+	if _, err := os.Stat(filepath.Join(repoRoot, ".git")); err != nil {
+		return ""
+	}
+	if HookRunsFinalize(repoRoot) {
+		return ""
+	}
+	pending := 0
+	if ids, err := store.ListSessions(repoRoot); err == nil {
+		pending = len(ids)
+	}
+	return fmt.Sprintf("⚠ shale: %d recorded session(s) waiting, but the pre-push hook at %s does not run `shale finalize` — evidence will not publish on push; run `shale doctor`",
+		pending, DisplayHookPath(repoRoot))
 }
 
 // hasCheckoutStep detects an actual `uses: actions/checkout` workflow step,
