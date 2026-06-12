@@ -34,11 +34,17 @@ func cmdFinalize(args []string, stdout, stderr io.Writer) int {
 	}
 	fmt.Fprintf(stdout, "shale: finalized %d file(s)\n", len(res.Written))
 	if *autoCommit {
-		if err := gitx.AutoCommit(root, res.Written, "chore(shale): session evidence"); err != nil {
+		committed, err := gitx.AutoCommit(root, res.Written, "chore(shale): session evidence")
+		if err != nil {
 			fmt.Fprintln(stderr, "shale finalize: auto-commit:", err)
 			return 1
 		}
-		fmt.Fprintln(stdout, "shale: evidence committed")
+		if committed {
+			// Git resolves the push set before pre-push hooks run, so a commit
+			// created here rides the NEXT push — say so, or the user discovers
+			// it as an unpushed commit and a confusing second push.
+			fmt.Fprintln(stdout, "shale: evidence committed — a push already in flight does not include it; it ships with your next push")
+		}
 	}
 	return 0
 }

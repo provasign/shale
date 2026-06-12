@@ -1,0 +1,3 @@
+# Written by shale init in consumer repos; mirrored here so the tool's own
+# session logs never get committed.
+local/

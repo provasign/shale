@@ -46,8 +46,8 @@ func TestRootAndBranch(t *testing.T) {
 		t.Fatalf("Root = %q want %q", gotResolved, want)
 	}
 	writeFile(t, root, "f.txt", "x")
-	if err := AutoCommit(root, []string{"f.txt"}, "init"); err != nil {
-		t.Fatalf("autocommit: %v", err)
+	if committed, err := AutoCommit(root, []string{"f.txt"}, "init"); err != nil || !committed {
+		t.Fatalf("autocommit: committed=%v err=%v", committed, err)
 	}
 	if b := Branch(root); b != "main" {
 		t.Fatalf("Branch = %q", b)
@@ -60,9 +60,10 @@ func TestRootAndBranch(t *testing.T) {
 func TestFilesChangedSince(t *testing.T) {
 	root := initRepo(t)
 	writeFile(t, root, "old.go", "package old")
+	writeFile(t, root, "doomed.go", "package doomed")
 	// Backdate the base commit so it falls outside the session window.
 	past := time.Now().Add(-2 * time.Hour).Format(time.RFC3339)
-	add := exec.Command("git", "add", "old.go")
+	add := exec.Command("git", "add", "old.go", "doomed.go")
 	add.Dir = root
 	if out, err := add.CombinedOutput(); err != nil {
 		t.Fatalf("git add: %v\n%s", err, out)
@@ -76,21 +77,35 @@ func TestFilesChangedSince(t *testing.T) {
 
 	since := time.Now().Add(-time.Minute)
 	writeFile(t, root, "committed.go", "package a")
-	if err := AutoCommit(root, []string{"committed.go"}, "change"); err != nil {
-		t.Fatal(err)
+	if committed, err := AutoCommit(root, []string{"committed.go"}, "change"); err != nil || !committed {
+		t.Fatalf("committed=%v err=%v", committed, err)
 	}
 	writeFile(t, root, "old.go", "package old\n// changed")
 	writeFile(t, root, "uncommitted.go", "package b")
 	writeFile(t, root, ".shale/x.yaml", "noise: true")
+	rm := exec.Command("git", "rm", "-q", "doomed.go")
+	rm.Dir = root
+	if out, err := rm.CombinedOutput(); err != nil {
+		t.Fatalf("git rm: %v\n%s", err, out)
+	}
 
 	got := FilesChangedSince(root, since)
-	want := map[string]bool{"committed.go": true, "old.go": true, "uncommitted.go": true}
+	want := map[string][]string{
+		"committed.go":   {"write"}, // added in a commit inside the window
+		"old.go":         {"edit"},  // modified in the worktree
+		"uncommitted.go": {"write"}, // untracked
+		"doomed.go":      {"delete"},
+	}
 	if len(got) != len(want) {
 		t.Fatalf("FilesChangedSince = %v", got)
 	}
-	for _, p := range got {
-		if !want[p] {
-			t.Fatalf("unexpected path %q in %v", p, got)
+	for _, fc := range got {
+		wantOps, ok := want[fc.Path]
+		if !ok {
+			t.Fatalf("unexpected path %q in %v", fc.Path, got)
+		}
+		if len(fc.Ops) != len(wantOps) || fc.Ops[0] != wantOps[0] {
+			t.Errorf("%s ops = %v, want %v", fc.Path, fc.Ops, wantOps)
 		}
 	}
 }
@@ -98,14 +113,14 @@ func TestFilesChangedSince(t *testing.T) {
 func TestAutoCommitNoopWhenNothingStaged(t *testing.T) {
 	root := initRepo(t)
 	writeFile(t, root, "f.txt", "x")
-	if err := AutoCommit(root, []string{"f.txt"}, "first"); err != nil {
-		t.Fatal(err)
+	if committed, err := AutoCommit(root, []string{"f.txt"}, "first"); err != nil || !committed {
+		t.Fatalf("committed=%v err=%v", committed, err)
 	}
 	// Same paths again with no changes: must be a clean no-op.
-	if err := AutoCommit(root, []string{"f.txt"}, "second"); err != nil {
-		t.Fatalf("noop autocommit errored: %v", err)
+	if committed, err := AutoCommit(root, []string{"f.txt"}, "second"); err != nil || committed {
+		t.Fatalf("noop autocommit: committed=%v err=%v", committed, err)
 	}
-	if err := AutoCommit(root, nil, "empty"); err != nil {
-		t.Fatalf("empty autocommit errored: %v", err)
+	if committed, err := AutoCommit(root, nil, "empty"); err != nil || committed {
+		t.Fatalf("empty autocommit: committed=%v err=%v", committed, err)
 	}
 }

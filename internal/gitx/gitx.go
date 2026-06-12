@@ -40,21 +40,47 @@ func Branch(root string) string {
 	return out
 }
 
+// FileChange is one path changed in the session window, with ops in the spec
+// vocabulary (write | edit | delete) derived from git's status letters.
+type FileChange struct {
+	Path string
+	Ops  []string
+}
+
 // FilesChangedSince returns repo-relative paths changed in the window from t
 // to now: commits authored since t on the current branch plus any
 // uncommitted (staged or unstaged) changes. This feeds the `via: git`
 // fallback (ADR D4 tier 3) — honest about being a window, not a touch log.
-func FilesChangedSince(root string, t time.Time) []string {
-	seen := map[string]bool{}
+func FilesChangedSince(root string, t time.Time) []FileChange {
+	ops := map[string][]string{}
+	add := func(path, op string) {
+		path = strings.Trim(strings.TrimSpace(path), `"`)
+		if path == "" || op == "" {
+			return
+		}
+		for _, o := range ops[path] {
+			if o == op {
+				return
+			}
+		}
+		ops[path] = append(ops[path], op)
+	}
 
 	logOut, err := run(root,
 		"log", "--since="+t.UTC().Format(time.RFC3339),
-		"--name-only", "--pretty=format:", "HEAD")
+		"--name-status", "--pretty=format:", "HEAD")
 	if err == nil {
 		for _, line := range strings.Split(logOut, "\n") {
-			if line = strings.TrimSpace(line); line != "" {
-				seen[line] = true
+			fields := strings.Split(line, "\t")
+			if len(fields) < 2 || fields[0] == "" {
+				continue
 			}
+			// Renames/copies are "R100\told\tnew"; the new path is the evidence.
+			op := opForStatus(fields[0][0])
+			if op == "" {
+				op = "edit" // unknown letter still means the path changed
+			}
+			add(fields[len(fields)-1], op)
 		}
 	}
 
@@ -69,23 +95,37 @@ func FilesChangedSince(root string, t time.Time) []string {
 			if i := strings.Index(path, " -> "); i >= 0 {
 				path = path[i+4:]
 			}
-			path = strings.Trim(path, `"`)
-			if path != "" {
-				seen[path] = true
-			}
+			// XY status: X is the index side, Y the worktree side.
+			add(path, opForStatus(line[0]))
+			add(path, opForStatus(line[1]))
 		}
 	}
 
-	paths := make([]string, 0, len(seen))
-	for p := range seen {
+	changes := make([]FileChange, 0, len(ops))
+	for p, o := range ops {
 		// Evidence about the evidence directory is noise.
 		if p == ".shale" || strings.HasPrefix(p, ".shale/") {
 			continue
 		}
-		paths = append(paths, p)
+		changes = append(changes, FileChange{Path: p, Ops: o})
 	}
-	sort.Strings(paths)
-	return paths
+	sort.Slice(changes, func(i, j int) bool { return changes[i].Path < changes[j].Path })
+	return changes
+}
+
+// opForStatus maps one git status letter (diff --name-status or porcelain XY)
+// to the spec ops vocabulary. Letters that carry no change ("space", ignored)
+// map to "".
+func opForStatus(c byte) string {
+	switch c {
+	case 'A', 'R', 'C', '?': // new content at this path
+		return "write"
+	case 'D':
+		return "delete"
+	case 'M', 'T', 'U':
+		return "edit"
+	}
+	return ""
 }
 
 // HooksDir returns the directory git will actually run hooks from for this
@@ -138,19 +178,23 @@ func IgnoredPaths(root string, paths []string) map[string]bool {
 }
 
 // AutoCommit stages the given paths and commits them with the standard
-// evidence message (ADR D3). Returns nil when there is nothing to commit.
-func AutoCommit(root string, paths []string, message string) error {
+// evidence message (ADR D3). Reports whether a commit was actually created —
+// callers in a pre-push hook must tell the user the new commit is NOT part of
+// the push already in flight.
+func AutoCommit(root string, paths []string, message string) (committed bool, err error) {
 	if len(paths) == 0 {
-		return nil
+		return false, nil
 	}
 	args := append([]string{"add", "--"}, paths...)
 	if _, err := run(root, args...); err != nil {
-		return err
+		return false, err
 	}
 	staged, _ := run(root, "diff", "--cached", "--name-only")
 	if strings.TrimSpace(staged) == "" {
-		return nil
+		return false, nil
 	}
-	_, err := run(root, "commit", "--no-verify", "-m", message)
-	return err
+	if _, err := run(root, "commit", "--no-verify", "-m", message); err != nil {
+		return false, err
+	}
+	return true, nil
 }

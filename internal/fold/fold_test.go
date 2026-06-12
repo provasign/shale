@@ -167,6 +167,9 @@ func TestRunGitFallbackWhenNoHooks(t *testing.T) {
 	if len(s.Files) != 1 || s.Files[0].Path != "flaky_test.go" || s.Files[0].Via != store.ViaGit {
 		t.Fatalf("git fallback files = %+v", s.Files)
 	}
+	if len(s.Files[0].Ops) != 1 || s.Files[0].Ops[0] != "write" {
+		t.Fatalf("untracked file ops = %v, want [write]", s.Files[0].Ops)
+	}
 	if s.Files[0].FirstTouched != nil {
 		t.Fatal("via:git entries must omit first_touched (we don't know it)")
 	}
@@ -219,6 +222,132 @@ func TestRunGitFallbackFillsMissingHookPaths(t *testing.T) {
 	}
 	if s.Files[1].Path != "main.go" || s.Files[1].Via != store.ViaGit {
 		t.Fatalf("git fallback file = %+v", s.Files[1])
+	}
+	if len(s.Files[1].Ops) != 1 || s.Files[1].Ops[0] != "write" {
+		t.Fatalf("newly added file ops = %v, want [write]", s.Files[1].Ops)
+	}
+}
+
+// Regression: a session with two intent→done arcs must never pair one task's
+// completion with another task's intent (found live: session d38090f4 in the
+// prism repo published the second intent with the first completion note).
+func TestRunPairsCompletionWithPrecedingIntent(t *testing.T) {
+	root := initRepo(t)
+	for _, ev := range []store.Event{
+		{Kind: store.KindIntent, At: t0, Title: "Commit the init output"},
+		{Kind: store.KindCompletion, At: t0.Add(time.Minute), Note: "init committed"},
+		{Kind: store.KindIntent, At: t0.Add(2 * time.Minute), Title: "Untrack the paused tool"},
+	} {
+		if err := store.AppendEvent(root, "SESSTWOTASK01", ev); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if _, err := Run(Options{RepoRoot: root, Now: now}); err != nil {
+		t.Fatal(err)
+	}
+	s, err := store.Load(filepath.Join(root, ".shale", "SESSTWOTASK01.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Intent == nil || s.Intent.Title != "Untrack the paused tool" {
+		t.Fatalf("intent = %+v, want the last declared intent", s.Intent)
+	}
+	if s.Completion != nil {
+		t.Fatalf("completion = %+v — the first task's completion must not attach to the second intent", s.Completion)
+	}
+	var sawIntent, sawDone bool
+	for _, n := range s.Notes {
+		if strings.Contains(n.Text, "Commit the init output") {
+			sawIntent = true
+		}
+		if strings.Contains(n.Text, "init committed") {
+			sawDone = true
+		}
+	}
+	if !sawIntent || !sawDone {
+		t.Fatalf("earlier cycle not preserved in notes: %+v", s.Notes)
+	}
+}
+
+// Regression: events captured after a session was finalized (e.g. `shale
+// done` landing after the pre-push hook ran) must fold into a continuation
+// file, and re-archiving the same session id must append, not clobber.
+func TestRunContinuationAfterFinalize(t *testing.T) {
+	root := initRepo(t)
+	seedFullSession(t, root, "SESSCONT01")
+	if _, err := Run(Options{RepoRoot: root, Now: now}); err != nil {
+		t.Fatal(err)
+	}
+
+	// Ambient-only remnant: no continuation file, archive appended.
+	for _, ev := range []store.Event{
+		{Kind: store.KindCommand, At: now.Add(time.Minute), Cmd: "git push origin main"},
+	} {
+		if err := store.AppendEvent(root, "SESSCONT01", ev); err != nil {
+			t.Fatal(err)
+		}
+	}
+	res, err := Run(Options{RepoRoot: root, Now: now.Add(2 * time.Minute)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Written) != 0 {
+		t.Fatalf("ambient remnant minted evidence: %v", res.Written)
+	}
+
+	// Remnant with a completion: continuation file carries it.
+	for _, ev := range []store.Event{
+		{Kind: store.KindCompletion, At: now.Add(3 * time.Minute), Note: "closing note that raced the push"},
+	} {
+		if err := store.AppendEvent(root, "SESSCONT01", ev); err != nil {
+			t.Fatal(err)
+		}
+	}
+	res, err = Run(Options{RepoRoot: root, Now: now.Add(4 * time.Minute)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Written) != 1 || !strings.HasSuffix(res.Written[0], "SESSCONT01-c2.yaml") {
+		t.Fatalf("written = %v, want the -c2 continuation", res.Written)
+	}
+	s, err := store.Load(filepath.Join(root, ".shale", "SESSCONT01-c2.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.ID != "SESSCONT01-c2" {
+		t.Fatalf("continuation id = %q", s.ID)
+	}
+	if s.Completion == nil || s.Completion.Note != "closing note that raced the push" {
+		t.Fatalf("continuation completion = %+v", s.Completion)
+	}
+	var sawContinuationNote bool
+	for _, n := range s.Notes {
+		if strings.Contains(n.Text, "continuation of session SESSCONT01") {
+			sawContinuationNote = true
+		}
+	}
+	if !sawContinuationNote {
+		t.Fatalf("continuation provenance note missing: %+v", s.Notes)
+	}
+
+	// The original evidence file was never rewritten (spec rule 2)...
+	orig, err := store.Load(filepath.Join(root, ".shale", "SESSCONT01.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if orig.Completion == nil || orig.Completion.Note != "Limiter done." {
+		t.Fatalf("original evidence changed: %+v", orig.Completion)
+	}
+	// ...and the archive holds ALL events for the id — appended, not clobbered.
+	raw, err := os.ReadFile(filepath.Join(root, ".shale", "local", "archive", "SESSCONT01.jsonl"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, must := range []string{"Add rate limiting", "git push origin main", "closing note that raced the push"} {
+		if !strings.Contains(string(raw), must) {
+			t.Fatalf("archive lost %q — clobbered instead of appended", must)
+		}
 	}
 }
 

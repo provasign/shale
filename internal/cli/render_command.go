@@ -99,10 +99,10 @@ func renderLocal(stdout, stderr io.Writer) int {
 			}
 		}
 	}
-	for _, p := range gitx.FilesChangedSince(root, time.Time{}) {
-		if !seen[p] {
-			seen[p] = true
-			prFiles = append(prFiles, render.ChangedFile{Path: p, Status: "modified"})
+	for _, fc := range gitx.FilesChangedSince(root, time.Time{}) {
+		if !seen[fc.Path] {
+			seen[fc.Path] = true
+			prFiles = append(prFiles, render.ChangedFile{Path: fc.Path, Status: "modified"})
 		}
 	}
 

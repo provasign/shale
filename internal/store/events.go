@@ -157,7 +157,10 @@ func ListSessions(repoRoot string) ([]string, error) {
 }
 
 // ArchiveSession moves a folded session JSONL out of the active set so a
-// re-run of finalize is a no-op (idempotency).
+// re-run of finalize is a no-op (idempotency). When the session id was
+// archived before (hook adapters recreate the JSONL when events arrive after
+// a finalize), the new events are appended — the archive is the local audit
+// trail and must never be clobbered.
 func ArchiveSession(repoRoot, sessionID string) error {
 	dir := filepath.Join(LocalDir(repoRoot), "archive")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
@@ -165,7 +168,11 @@ func ArchiveSession(repoRoot, sessionID string) error {
 	}
 	src := SessionPath(repoRoot, sessionID)
 	dst := filepath.Join(dir, sessionID+".jsonl")
-	if err := os.Rename(src, dst); err != nil {
+	if _, err := os.Stat(dst); err == nil {
+		if err := appendFile(dst, src); err != nil {
+			return fmt.Errorf("archive session %s: %w", sessionID, err)
+		}
+	} else if err := os.Rename(src, dst); err != nil {
 		return fmt.Errorf("archive session %s: %w", sessionID, err)
 	}
 	cur := filepath.Join(LocalDir(repoRoot), "current")
@@ -173,4 +180,25 @@ func ArchiveSession(repoRoot, sessionID string) error {
 		_ = os.Remove(cur) // best-effort: a stale pointer is harmless
 	}
 	return nil
+}
+
+// appendFile appends src's content to dst and removes src. JSONL files
+// concatenate cleanly line-by-line.
+func appendFile(dst, src string) error {
+	data, err := os.ReadFile(src)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(dst, os.O_APPEND|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(data); err != nil {
+		f.Close()
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	return os.Remove(src)
 }

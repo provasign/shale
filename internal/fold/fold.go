@@ -50,7 +50,8 @@ func sha256Hex(b []byte) string {
 
 // Run folds every active session JSONL under .shale/local/ into a finalized
 // shale file. Idempotent: folded sessions are archived, and a session whose
-// YAML already exists is skipped, never rewritten (spec rule 2).
+// YAML already exists is never rewritten (spec rule 2) — post-finalize task
+// evidence folds into a continuation file instead.
 func Run(opts Options) (Result, error) {
 	var res Result
 	if opts.Privacy == "" {
@@ -84,14 +85,9 @@ func Run(opts Options) (Result, error) {
 }
 
 // foldSession folds one session. Returns nil paths when the session was
-// already finalized (idempotent skip).
+// already finalized and the remnant log carries no task evidence (idempotent
+// skip).
 func foldSession(opts Options, sessionID string) ([]string, error) {
-	yamlRel := filepath.Join(".shale", sessionID+".yaml")
-	yamlAbs := filepath.Join(opts.RepoRoot, yamlRel)
-	if _, err := os.Stat(yamlAbs); err == nil {
-		return nil, nil // append-only: never rewrite
-	}
-
 	events, err := store.ReadEvents(store.SessionPath(opts.RepoRoot, sessionID))
 	if err != nil {
 		return nil, err
@@ -100,11 +96,35 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 		return nil, fmt.Errorf("no events")
 	}
 
+	evidenceID := sessionID
+	yamlRel := filepath.Join(".shale", sessionID+".yaml")
+	continuation := false
+	if _, err := os.Stat(filepath.Join(opts.RepoRoot, yamlRel)); err == nil {
+		// Already finalized — append-only, never rewrite (spec rule 2). But
+		// hook adapters recreate the JSONL when events land after a finalize
+		// (e.g. a `shale done` that arrived after the pre-push hook ran).
+		// Real task evidence in that remnant folds into a continuation file;
+		// ambient capture alone (commands, prompts) is archived without
+		// minting one.
+		if !hasTaskEvidence(events) {
+			return nil, nil
+		}
+		continuation = true
+		for n := 2; ; n++ {
+			evidenceID = fmt.Sprintf("%s-c%d", sessionID, n)
+			yamlRel = filepath.Join(".shale", evidenceID+".yaml")
+			if _, err := os.Stat(filepath.Join(opts.RepoRoot, yamlRel)); os.IsNotExist(err) {
+				break
+			}
+		}
+	}
+	yamlAbs := filepath.Join(opts.RepoRoot, yamlRel)
+
 	eng := redact.New()
 	now := opts.Now.UTC()
 	s := &store.Shale{
 		ShaleVersion: store.SchemaVersion,
-		ID:           sessionID,
+		ID:           evidenceID,
 		CreatedAt:    events[0].At.UTC(),
 		FinalizedAt:  now,
 		Privacy:      opts.Privacy,
@@ -114,11 +134,29 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 		},
 		Notes: []store.Note{},
 	}
+	if continuation {
+		s.Notes = append(s.Notes, store.Note{
+			Text: fmt.Sprintf("continuation of session %s — events captured after its evidence was finalized", sessionID),
+			At:   s.CreatedAt,
+		})
+	}
 
 	var prompts []store.Event
 	var redactions int
 	touches := map[string]*store.FileTouch{}
 	var touchOrder []string
+
+	// A session can hold several intent→done arcs (one per task). A
+	// completion always belongs to the intent that precedes it — pairing it
+	// with an intent declared later would attribute one task's outcome to
+	// another.
+	type taskCycle struct {
+		intent      *store.Intent
+		completion  *store.Completion
+		completedAt time.Time
+	}
+	var cycles []taskCycle
+	var cur taskCycle
 
 	for _, ev := range events {
 		switch ev.Kind {
@@ -151,7 +189,12 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 				intent.Title, redactions = applyRedact(eng, ev.Title, redactions)
 				intent.Body, redactions = applyRedact(eng, ev.Body, redactions)
 			}
-			s.Intent = intent
+			// A new intent never adopts an earlier cycle's completion.
+			if cur.intent != nil || cur.completion != nil {
+				cycles = append(cycles, cur)
+				cur = taskCycle{}
+			}
+			cur.intent = intent
 
 		case store.KindCompletion:
 			c := &store.Completion{
@@ -172,7 +215,12 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 				c.CostUSD = usd
 				c.PricingVersion = pricing.Version
 			}
-			s.Completion = c
+			if cur.completion != nil {
+				cycles = append(cycles, cur)
+				cur = taskCycle{}
+			}
+			cur.completion = c
+			cur.completedAt = ev.At.UTC()
 			if s.Agent.Model == "" {
 				s.Agent.Model = ev.Model
 			}
@@ -211,6 +259,31 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 		}
 	}
 
+	if cur.intent != nil || cur.completion != nil {
+		cycles = append(cycles, cur)
+	}
+	if n := len(cycles); n > 0 {
+		// The last cycle is the session's current state; earlier cycles stay
+		// in the evidence as notes — never dropped, never cross-paired.
+		s.Intent = cycles[n-1].intent
+		s.Completion = cycles[n-1].completion
+		for _, c := range cycles[:n-1] {
+			if c.intent != nil {
+				s.Notes = append(s.Notes, store.Note{
+					Text: "earlier task in this session — intent: " + c.intent.Title,
+					At:   c.intent.DeclaredAt,
+				})
+			}
+			if c.completion != nil {
+				text := "earlier task in this session — completed"
+				if c.completion.Note != "" {
+					text += ": " + c.completion.Note
+				}
+				s.Notes = append(s.Notes, store.Note{Text: text, At: c.completedAt})
+			}
+		}
+	}
+
 	if s.Intent != nil {
 		s.Intent.PromptCount = len(prompts)
 	}
@@ -230,14 +303,15 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 
 	// Tier 3 fallback (ADR D4): if the agent declared intent/done, derive
 	// missing paths from git over the session window. Hook evidence wins for
-	// paths it saw; git fills only the gaps.
+	// paths it saw; git fills only the gaps, with ops derived from git's own
+	// statuses — a deletion recorded as "edit" is misevidence.
 	if s.Intent != nil || s.Completion != nil {
-		for _, p := range gitx.FilesChangedSince(opts.RepoRoot, s.CreatedAt) {
-			if touches[p] != nil {
+		for _, fc := range gitx.FilesChangedSince(opts.RepoRoot, s.CreatedAt) {
+			if touches[fc.Path] != nil {
 				continue
 			}
 			s.Files = append(s.Files, store.FileTouch{
-				Path: p, Ops: []string{"edit"}, Via: store.ViaGit,
+				Path: fc.Path, Ops: fc.Ops, Via: store.ViaGit,
 			})
 		}
 	}
@@ -248,7 +322,7 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 	// timestamps, never tool output. Omitted entirely in hash-only mode.
 	if transcriptsEnabled && opts.Privacy != store.PrivacyHashOnly && len(prompts) > 0 {
 		var b strings.Builder
-		fmt.Fprintf(&b, "# Session %s — prompts-only transcript\n\n", sessionID)
+		fmt.Fprintf(&b, "# Session %s — prompts-only transcript\n\n", evidenceID)
 		for _, p := range prompts {
 			text := p.Text
 			if opts.Privacy == store.PrivacyRedacted {
@@ -259,7 +333,7 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 			fmt.Fprintf(&b, "**%s**\n\n> %s\n\n", p.At.UTC().Format(time.RFC3339), strings.ReplaceAll(text, "\n", "\n> "))
 		}
 		content := []byte(b.String())
-		transcriptRel := filepath.Join(".shale", "transcripts", sessionID+".md")
+		transcriptRel := filepath.Join(".shale", "transcripts", evidenceID+".md")
 		abs := filepath.Join(opts.RepoRoot, transcriptRel)
 		if err := os.MkdirAll(filepath.Dir(abs), 0o755); err != nil {
 			return nil, err
@@ -268,7 +342,7 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 			return nil, err
 		}
 		s.Transcript = &store.Transcript{
-			Path:   filepath.ToSlash(filepath.Join("transcripts", sessionID+".md")),
+			Path:   filepath.ToSlash(filepath.Join("transcripts", evidenceID+".md")),
 			SHA256: sha256Hex(content),
 			Kind:   "prompts",
 		}
@@ -286,6 +360,20 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 		return nil, err
 	}
 	return append(written, yamlRel), nil
+}
+
+// hasTaskEvidence reports whether an event log carries anything worth a
+// continuation evidence file: an agent-declared intent or completion, a file
+// touch, or a manual note. Ambient capture (commands, prompts, session
+// markers) alone does not.
+func hasTaskEvidence(events []store.Event) bool {
+	for _, ev := range events {
+		switch ev.Kind {
+		case store.KindIntent, store.KindCompletion, store.KindFileTouch, store.KindNote:
+			return true
+		}
+	}
+	return false
 }
 
 func applyRedact(eng *redact.Engine, text string, total int) (string, int) {
