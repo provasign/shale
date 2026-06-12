@@ -100,10 +100,21 @@ You'll see something like:
   ✓ Steering prompt added      (CLAUDE.md, AGENTS.md)
   ✓ Wrote repo capture hooks   (.claude/settings.json, .github/hooks/shale.json,
                                 .cursor/hooks.json, .codex/hooks.json)
+  ? Auto-approve shale evidence commands (shale intent/done/note) for Claude Code?
+    Writes a permissions allowlist into the committed .claude/settings.json so your
+    team's agents stop prompting for exactly these three commands. [y/N] y
+  ✓ Claude auto-approve        (shale intent/done/note allowlisted in .claude/settings.json)
   ✓ Created .shale/            (committed; .shale/local/ gitignored)
   ✓ Wrote .github/workflows/shale.yml
   ✓ Installed pre-push hook    (runs shale finalize)
   → Commit these files. Contributors and their agents are wired on clone.
+
+The `[y/N]` question only appears at a real terminal (never in scripts or
+CI — pass `--allow-agent-commands` there). Answering `y` writes a Claude
+Code permissions allowlist scoped to exactly `shale intent`, `shale done`,
+and `shale note` into the committed settings, so nobody on the team gets
+permission prompts for the evidence commands. `shale uninstall --repo`
+removes it cleanly.
 ```
 
 What each piece does:
@@ -114,7 +125,7 @@ What each piece does:
 | Repo capture hooks | Stream file touches, commands, and prompts into the session record for agents with hook support. **Self-guarding**: teammates without Shale installed see zero errors |
 | `.shale/` | Committed, schema-versioned, redacted evidence. `local/` working state is gitignored |
 | `.github/workflows/shale.yml` | Renders the card on every PR via the GitHub API — never checks out PR code |
-| Pre-push hook | Finalizes any open session and commits the evidence before push. Fail-open: it can never block your push |
+| Pre-push hook | Safety net: finalizes any session `shale done` didn't (interrupted agents, sessions without a done) and commits the evidence. Fail-open: it can never block your push |
 
 ### The card-rendering workflow
 

@@ -54,6 +54,13 @@ git add . && git commit -m "chore: enable shale" && git push
 > Newer Homebrew versions ask you to trust third-party taps once: if brew
 > refuses with "untrusted tap", run `brew trust provasign/shale` and retry.
 
+![shale init in a fresh repo: steering, capture hooks, consent prompt for the Claude allowlist, scaffold, workflow, pre-push hook](assets/shale-init.gif)
+
+At a real terminal, `init` asks one question — whether to auto-approve the
+three shale evidence commands for Claude Code (committed allowlist, your
+team stops seeing permission prompts). Default is no; scripts are never
+asked. The recording is reproducible: [`assets/shale-init.tape`](assets/shale-init.tape).
+
 That's it. The next agent-authored PR carries a card. No Homebrew? Grab the
 latest [release](https://github.com/provasign/shale/releases/latest) and put
 the `shale` binary on your `PATH`.
