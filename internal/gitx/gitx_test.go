@@ -111,6 +111,60 @@ func TestFilesChangedSince(t *testing.T) {
 	}
 }
 
+func TestFilesChangedSinceIgnoresMainSync(t *testing.T) {
+	root := initRepo(t)
+	writeFile(t, root, "base.go", "package base")
+	past := time.Now().Add(-2 * time.Hour).Format(time.RFC3339)
+	add := exec.Command("git", "add", "base.go")
+	add.Dir = root
+	if out, err := add.CombinedOutput(); err != nil {
+		t.Fatalf("git add: %v\n%s", err, out)
+	}
+	commit := exec.Command("git", "commit", "--no-verify", "-m", "base")
+	commit.Dir = root
+	commit.Env = append(os.Environ(), "GIT_AUTHOR_DATE="+past, "GIT_COMMITTER_DATE="+past)
+	if out, err := commit.CombinedOutput(); err != nil {
+		t.Fatalf("git commit: %v\n%s", err, out)
+	}
+
+	checkout := exec.Command("git", "checkout", "-b", "feature")
+	checkout.Dir = root
+	if out, err := checkout.CombinedOutput(); err != nil {
+		t.Fatalf("git checkout feature: %v\n%s", err, out)
+	}
+	since := time.Now().Add(-time.Minute)
+	writeFile(t, root, "feature.go", "package feature")
+	if committed, err := AutoCommit(root, []string{"feature.go"}, "feature change"); err != nil || !committed {
+		t.Fatalf("feature commit: committed=%v err=%v", committed, err)
+	}
+
+	checkout = exec.Command("git", "checkout", "main")
+	checkout.Dir = root
+	if out, err := checkout.CombinedOutput(); err != nil {
+		t.Fatalf("git checkout main: %v\n%s", err, out)
+	}
+	writeFile(t, root, "synced.go", "package synced")
+	if committed, err := AutoCommit(root, []string{"synced.go"}, "main change"); err != nil || !committed {
+		t.Fatalf("main commit: committed=%v err=%v", committed, err)
+	}
+
+	checkout = exec.Command("git", "checkout", "feature")
+	checkout.Dir = root
+	if out, err := checkout.CombinedOutput(); err != nil {
+		t.Fatalf("git checkout feature again: %v\n%s", err, out)
+	}
+	rebase := exec.Command("git", "rebase", "main")
+	rebase.Dir = root
+	if out, err := rebase.CombinedOutput(); err != nil {
+		t.Fatalf("git rebase main: %v\n%s", err, out)
+	}
+
+	got := FilesChangedSince(root, since)
+	if len(got) != 1 || got[0].Path != "feature.go" {
+		t.Fatalf("FilesChangedSince after main sync = %v, want only feature.go", got)
+	}
+}
+
 // AutoCommit runs mid-session now (`shale done`): the user's own staged work
 // must stay staged and out of the evidence commit.
 func TestAutoCommitLeavesUserStagingAlone(t *testing.T) {

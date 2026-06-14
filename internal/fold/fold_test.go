@@ -228,6 +228,50 @@ func TestRunGitFallbackFillsMissingHookPaths(t *testing.T) {
 	}
 }
 
+func TestRunCleansCommandEvidenceBeforePersistence(t *testing.T) {
+	root := initRepo(t)
+	rawCmd := `cat > pkg/query_test.go <<'EOF'
+package pkg
+
+const token = "ghp_aBcDeFgHiJkLmNoPqRsTuVwXyZ0123456789"
+EOF
+cd ` + root + `; go test ./pkg/criteria -run TestTranslator_NumericPropertyComparison -v 2>&1 | grep -E "PASS|FAIL" | head -25`
+	for _, ev := range []store.Event{
+		{Kind: store.KindIntent, At: t0, Title: "Fix query parsing"},
+		{Kind: store.KindCommand, At: t0.Add(time.Minute), Cmd: rawCmd, ExitCode: intPtr(0)},
+		{Kind: store.KindCompletion, At: t0.Add(2 * time.Minute), Note: "fixed"},
+	} {
+		if err := store.AppendEvent(root, "SESSCMD01", ev); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	if _, err := Run(Options{RepoRoot: root, Now: now}); err != nil {
+		t.Fatal(err)
+	}
+	s, err := store.Load(filepath.Join(root, ".shale", "SESSCMD01.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(s.Commands) != 1 {
+		t.Fatalf("commands = %+v", s.Commands)
+	}
+	got := s.Commands[0].Cmd
+	want := "go test ./pkg/criteria -run TestTranslator_NumericPropertyComparison -v 2>&1"
+	if got != want || s.Commands[0].Classified != "test" {
+		t.Fatalf("command = %#v, want %q classified as test", s.Commands[0], want)
+	}
+	rawYAML, err := os.ReadFile(filepath.Join(root, ".shale", "SESSCMD01.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, banned := range []string{"ghp_", "package pkg", root, "/Users/", "grep -E", "head -25"} {
+		if strings.Contains(string(rawYAML), banned) {
+			t.Fatalf("committed command evidence leaked %q:\n%s", banned, rawYAML)
+		}
+	}
+}
+
 // Regression: a session with two intent→done arcs must never pair one task's
 // completion with another task's intent (found live: session d38090f4 in the
 // prism repo published the second intent with the first completion note).

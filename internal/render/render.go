@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/provasign/shale/internal/commandfmt"
 	"github.com/provasign/shale/internal/store"
 )
 
@@ -431,7 +432,7 @@ func writeChecks(b *strings.Builder, shales []*store.Shale) {
 				}
 			}
 			checks = append(checks, check{
-				sessionID: displayID(s.ID), cmd: c.Cmd, result: result,
+				sessionID: displayID(s.ID), cmd: commandfmt.ForDisplay(c.Cmd), result: result,
 				when: formatTimeUTC(c.At), at: c.At,
 			})
 		}
@@ -563,7 +564,12 @@ func plural(n int) string {
 	return "s"
 }
 
-func code(s string) string { return "`" + strings.ReplaceAll(s, "`", "'") + "`" }
+func code(s string) string {
+	s = strings.ReplaceAll(s, "`", "'")
+	s = strings.ReplaceAll(s, "\n", " ")
+	s = strings.ReplaceAll(s, "|", `\|`)
+	return "`" + s + "`"
+}
 
 func sortedKeys(m map[string]bool) []string {
 	keys := make([]string, 0, len(m))
