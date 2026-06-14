@@ -38,7 +38,7 @@ func Run(ctx context.Context, f forge.Forge, pr int) (Result, error) {
 		return res, fmt.Errorf("list PR files: %w", err)
 	}
 
-	shales, tamper := loadShales(ctx, f, head, pr)
+	shales, tamper := loadShales(ctx, f, head, pr, prFiles)
 	res.Shales = len(shales)
 	res.Tampered = tamper
 
@@ -79,15 +79,11 @@ func Run(ctx context.Context, f forge.Forge, pr int) (Result, error) {
 // parseable shales plus tamper warnings (transcript hash mismatch, shale
 // edited after its introducing commit). Unparseable files become warnings,
 // not failures — hostile input must degrade, not break (D6/D7).
-func loadShales(ctx context.Context, f forge.Forge, head string, pr int) ([]*store.Shale, []string) {
+func loadShales(ctx context.Context, f forge.Forge, head string, pr int, prFiles []render.ChangedFile) ([]*store.Shale, []string) {
 	var shales []*store.Shale
 	var warnings []string
 
-	paths, err := f.ListDir(ctx, head, ".shale")
-	if err != nil {
-		warnings = append(warnings, "could not list .shale/: "+err.Error())
-		return nil, warnings
-	}
+	paths := shalePathsInPR(prFiles)
 
 	prCommits, _ := f.PRCommits(ctx, pr)
 	prSet := map[string]bool{}
@@ -144,6 +140,28 @@ func loadShales(ctx context.Context, f forge.Forge, head string, pr int) ([]*sto
 		shales = append(shales, s)
 	}
 	return shales, warnings
+}
+
+func shalePathsInPR(prFiles []render.ChangedFile) []string {
+	var paths []string
+	seen := map[string]bool{}
+	for _, f := range prFiles {
+		if f.Status == "removed" {
+			continue
+		}
+		if !strings.HasPrefix(f.Path, ".shale/") || !strings.HasSuffix(f.Path, ".yaml") {
+			continue
+		}
+		if path.Base(f.Path) == "config.yaml" {
+			continue
+		}
+		if seen[f.Path] {
+			continue
+		}
+		seen[f.Path] = true
+		paths = append(paths, f.Path)
+	}
+	return paths
 }
 
 func short(id string) string {

@@ -93,8 +93,11 @@ func TestRunHappyPath(t *testing.T) {
 	transcript := []byte("# transcript")
 	s := validShale("SESS01", transcript)
 	f := &fakeForge{
-		head:  "headsha",
-		files: []render.ChangedFile{{Path: "main.go", Status: "modified"}},
+		head: "headsha",
+		files: []render.ChangedFile{
+			{Path: "main.go", Status: "modified"},
+			{Path: ".shale/SESS01.yaml", Status: "added"},
+		},
 		contents: map[string][]byte{
 			".shale/SESS01.yaml":           shaleBytes(t, s),
 			".shale/transcripts/SESS01.md": transcript,
@@ -142,8 +145,11 @@ func TestRunNudgeWhenNoShale(t *testing.T) {
 func TestRunFlagsTranscriptTamper(t *testing.T) {
 	s := validShale("SESS01", []byte("original"))
 	f := &fakeForge{
-		head:  "headsha",
-		files: []render.ChangedFile{{Path: "main.go", Status: "modified"}},
+		head: "headsha",
+		files: []render.ChangedFile{
+			{Path: "main.go", Status: "modified"},
+			{Path: ".shale/SESS01.yaml", Status: "added"},
+		},
 		contents: map[string][]byte{
 			".shale/SESS01.yaml":           shaleBytes(t, s),
 			".shale/transcripts/SESS01.md": []byte("EDITED AFTER THE FACT"),
@@ -164,8 +170,11 @@ func TestRunFlagsTranscriptTamper(t *testing.T) {
 func TestRunFlagsShaleEditedAfterCapture(t *testing.T) {
 	s := validShale("SESS01", nil)
 	f := &fakeForge{
-		head:  "headsha",
-		files: []render.ChangedFile{{Path: "main.go", Status: "modified"}},
+		head: "headsha",
+		files: []render.ChangedFile{
+			{Path: "main.go", Status: "modified"},
+			{Path: ".shale/SESS01.yaml", Status: "added"},
+		},
 		contents: map[string][]byte{
 			".shale/SESS01.yaml": shaleBytes(t, s),
 		},
@@ -183,8 +192,12 @@ func TestRunFlagsShaleEditedAfterCapture(t *testing.T) {
 
 func TestRunHostileShaleDegradesToWarning(t *testing.T) {
 	f := &fakeForge{
-		head:  "headsha",
-		files: []render.ChangedFile{{Path: "main.go", Status: "modified"}},
+		head: "headsha",
+		files: []render.ChangedFile{
+			{Path: "main.go", Status: "modified"},
+			{Path: ".shale/evil.yaml", Status: "added"},
+			{Path: ".shale/junk.yaml", Status: "added"},
+		},
 		contents: map[string][]byte{
 			".shale/evil.yaml": []byte("shale_version: \"0\"\nid: x\nprivacy: bogus-mode\n"),
 			".shale/junk.yaml": []byte("{{{{not yaml"),
@@ -199,5 +212,34 @@ func TestRunHostileShaleDegradesToWarning(t *testing.T) {
 	}
 	if len(res.Tampered) != 2 {
 		t.Fatalf("want 2 warnings, got %v", res.Tampered)
+	}
+}
+
+func TestRunIgnoresInheritedBaseBranchShale(t *testing.T) {
+	current := validShale("CURRENT01", nil)
+	inherited := validShale("MAIN01", nil)
+	inherited.Intent.Title = "Old main evidence"
+	f := &fakeForge{
+		head: "headsha",
+		files: []render.ChangedFile{
+			{Path: "main.go", Status: "modified"},
+			{Path: ".shale/CURRENT01.yaml", Status: "added"},
+		},
+		contents: map[string][]byte{
+			".shale/CURRENT01.yaml": shaleBytes(t, current),
+			".shale/MAIN01.yaml":    shaleBytes(t, inherited),
+		},
+		commits:  []string{"c1"},
+		touching: map[string][]string{".shale/CURRENT01.yaml": {"c1"}},
+	}
+	res, err := Run(context.Background(), f, 7)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Shales != 1 {
+		t.Fatalf("shales = %d, want only the PR evidence file", res.Shales)
+	}
+	if strings.Contains(res.Card, "Old main evidence") {
+		t.Fatalf("inherited base-branch evidence rendered:\n%s", res.Card)
 	}
 }

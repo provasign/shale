@@ -48,9 +48,11 @@ type FileChange struct {
 }
 
 // FilesChangedSince returns repo-relative paths changed in the window from t
-// to now: commits authored since t on the current branch plus any
-// uncommitted (staged or unstaged) changes. This feeds the `via: git`
-// fallback (ADR D4 tier 3) — honest about being a window, not a touch log.
+// to now: non-merge commits authored on the current branch since t plus any
+// uncommitted (staged or unstaged) changes. It deliberately excludes commits
+// reachable from the default branch/FETCH_HEAD so a branch sync from main
+// does not become this session's evidence. This feeds the `via: git` fallback
+// (ADR D4 tier 3) — honest about being a window, not a touch log.
 func FilesChangedSince(root string, t time.Time) []FileChange {
 	ops := map[string][]string{}
 	add := func(path, op string) {
@@ -66,9 +68,15 @@ func FilesChangedSince(root string, t time.Time) []FileChange {
 		ops[path] = append(ops[path], op)
 	}
 
-	logOut, err := run(root,
-		"log", "--since="+t.UTC().Format(time.RFC3339),
-		"--name-status", "--pretty=format:", "HEAD")
+	args := []string{
+		"log", "--first-parent", "--no-merges",
+		"--since=" + t.UTC().Format(time.RFC3339),
+		"--name-status", "--pretty=format:", "HEAD",
+	}
+	for _, ref := range syncRefs(root) {
+		args = append(args, "^"+ref)
+	}
+	logOut, err := run(root, args...)
 	if err == nil {
 		for _, line := range strings.Split(logOut, "\n") {
 			fields := strings.Split(line, "\t")
@@ -111,6 +119,32 @@ func FilesChangedSince(root string, t time.Time) []FileChange {
 	}
 	sort.Slice(changes, func(i, j int) bool { return changes[i].Path < changes[j].Path })
 	return changes
+}
+
+func syncRefs(root string) []string {
+	current := Branch(root)
+	candidates := []string{"FETCH_HEAD"}
+	if current != "main" && current != "master" {
+		candidates = append(candidates,
+			"refs/remotes/origin/HEAD",
+			"refs/remotes/origin/main",
+			"refs/remotes/origin/master",
+			"refs/heads/main",
+			"refs/heads/master",
+		)
+	}
+
+	var refs []string
+	seen := map[string]bool{}
+	for _, ref := range candidates {
+		oid, err := run(root, "rev-parse", "--verify", "--quiet", ref+"^{commit}")
+		if err != nil || oid == "" || seen[oid] {
+			continue
+		}
+		seen[oid] = true
+		refs = append(refs, ref)
+	}
+	return refs
 }
 
 // opForStatus maps one git status letter (diff --name-status or porcelain XY)

@@ -294,6 +294,30 @@ func TestCardHostileShaleCannotInject(t *testing.T) {
 	}
 }
 
+func TestCardCleansNoisyHistoricalChecks(t *testing.T) {
+	s := sampleShale("checks123")
+	s.Commands = []store.Command{{
+		Cmd:        "cd /Users/noahkreiger/Documents/fianulabs/core/core; go test ./pkg/criteria -run TestTranslator_NumericPropertyComparison -v 2>&1 | grep -E \"PASS|FAIL\" | head -25\ncat pkg/criteria/query.go",
+		ExitCode:   intPtr(0),
+		At:         declared.Add(10 * time.Minute),
+		Classified: "test",
+	}}
+	got := Card(Input{Shales: []*store.Shale{s}, PRFiles: samplePRFiles()})
+	if !strings.Contains(got, "`go test ./pkg/criteria -run TestTranslator_NumericPropertyComparison -v 2&gt;&amp;1`") {
+		t.Fatalf("check command not cleaned:\n%s", got)
+	}
+	for _, banned := range []string{"/Users/noahkreiger", "grep -E", "head -25", "cat pkg/criteria"} {
+		if strings.Contains(got, banned) {
+			t.Fatalf("noisy check content survived %q:\n%s", banned, got)
+		}
+	}
+	for _, line := range strings.Split(got, "\n") {
+		if strings.HasPrefix(line, "| `checks123`") && strings.Count(line, "|") != 5 {
+			t.Fatalf("check row table was split by command pipes: %q", line)
+		}
+	}
+}
+
 func TestSanitize(t *testing.T) {
 	cases := map[string]string{
 		"plain text":     "plain text",

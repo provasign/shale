@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/provasign/shale/internal/capture"
+	"github.com/provasign/shale/internal/commandfmt"
 	"github.com/provasign/shale/internal/gitx"
 	"github.com/provasign/shale/internal/pricing"
 	"github.com/provasign/shale/internal/redact"
@@ -242,11 +243,15 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 			}
 
 		case store.KindCommand:
-			cmd, r := eng.Apply(ev.Cmd)
+			rawCmd := commandfmt.ForEvidence(opts.RepoRoot, ev.Cmd)
+			if rawCmd == "" {
+				continue
+			}
+			cmd, r := eng.Apply(rawCmd)
 			redactions += r
 			s.Commands = append(s.Commands, store.Command{
 				Cmd: cmd, ExitCode: ev.ExitCode, At: ev.At.UTC(),
-				Classified: ClassifyCommand(ev.Cmd),
+				Classified: ClassifyCommand(rawCmd),
 			})
 
 		case store.KindPrompt:
@@ -416,26 +421,5 @@ func contains(xs []string, x string) bool {
 // ClassifyCommand buckets an agent-invoked command for the "checks recorded"
 // card section. Heuristic by design; "other" is an honest answer.
 func ClassifyCommand(cmd string) string {
-	c := strings.ToLower(cmd)
-	switch {
-	case containsAny(c, "gitleaks", "semgrep", "trivy", "snyk", "govulncheck", "bandit", "grype"):
-		return "scan"
-	case containsAny(c, "golangci-lint", "eslint", "ruff", "flake8", "pylint", "rubocop", "clippy", "go vet", "staticcheck", "tflint"):
-		return "lint"
-	case containsAny(c, "go test", "pytest", "npm test", "yarn test", "pnpm test", "jest", "vitest", "cargo test", "rspec", "mvn test", "gradle test", "make test"):
-		return "test"
-	case containsAny(c, "go build", "npm run build", "yarn build", "cargo build", "make build", "mvn package", "gradle build", "docker build", "tsc"):
-		return "build"
-	default:
-		return "other"
-	}
-}
-
-func containsAny(s string, subs ...string) bool {
-	for _, sub := range subs {
-		if strings.Contains(s, sub) {
-			return true
-		}
-	}
-	return false
+	return commandfmt.Classify(cmd)
 }
