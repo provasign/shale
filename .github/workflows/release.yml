@@ -34,6 +34,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Publish per-asset checksums
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          shopt -s nullglob
+          assets=(dist/shale_*.tar.gz)
+          if [ "${#assets[@]}" -eq 0 ]; then
+            echo "No release archives found."
+            exit 1
+          fi
+
+          for asset in "${assets[@]}"; do
+            sha256sum "${asset}" | awk '{print $1}' > "${asset}.sha256"
+          done
+
+          gh release upload "${GITHUB_REF_NAME}" dist/shale_*.tar.gz.sha256 --clobber
+
       - name: Publish Homebrew formula
         env:
           HOMEBREW_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
