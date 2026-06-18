@@ -8,88 +8,38 @@ import (
 	"github.com/provasign/shale/internal/store"
 )
 
-// codexPayload covers the Codex CLI hook stdin JSON surface Shale reads.
-// Fixtures under testdata/codex/ were shaped from Codex CLI 0.139.0 hook docs
-// and local hook-reader behavior; unknown fields are ignored.
-type codexPayload struct {
-	SessionID     string          `json:"session_id"`
-	CWD           string          `json:"cwd"`
-	HookEventName string          `json:"hook_event_name"`
-	Prompt        string          `json:"prompt"`
-	ToolName      string          `json:"tool_name"`
-	ToolInput     json.RawMessage `json:"tool_input"`
-	ToolResponse  json.RawMessage `json:"tool_response"`
-	Model         string          `json:"model"`
+// Codex's field/event contract lives in maps/codex.json. The one piece that
+// can't be a flat field map is apply_patch: edits surface as a patch envelope
+// (`*** Add File:` / `*** Update File:` / `*** Delete File:` lines), and the
+// tool name varies ("apply_patch", "functions.apply_patch", …). That stays in
+// code here, wired in as the map's tool_fallback structural handler.
+func init() {
+	structuralHandlers["codex_apply_patch"] = func(toolName string, input json.RawMessage, at time.Time) []store.Event {
+		if !isApplyPatchTool(toolName) {
+			return nil
+		}
+		return codexPatchTouches(codexPatchText(input), at)
+	}
 }
 
-type codexToolInput struct {
-	FilePath      string `json:"file_path"`
-	FilePathCamel string `json:"filePath"`
-	Path          string `json:"path"`
-	NotebookPath  string `json:"notebook_path"`
-	Command       string `json:"command"`
-	Patch         string `json:"patch"`
-	Input         string `json:"input"`
-	Content       string `json:"content"`
-	Cmd           string `json:"cmd"`
-	Text          string `json:"text"`
-}
-
-type codexToolResponse struct {
-	ExitCode *int `json:"exit_code"`
-}
-
-// ParseCodex normalizes one Codex hook payload. It returns zero events for
-// unknown or incomplete payloads, preserving hook fail-open behavior.
+// ParseCodex normalizes one Codex hook payload. Contract in maps/codex.json;
+// zero events for unknown or incomplete payloads, preserving fail-open.
 func ParseCodex(raw []byte, now time.Time) (events []store.Event, sessionID, cwd string) {
-	var p codexPayload
-	if err := json.Unmarshal(raw, &p); err != nil {
+	m, ok := loadMapping("codex")
+	if !ok {
 		return nil, "", ""
 	}
-	sessionID, cwd = p.SessionID, p.CWD
-	at := now.UTC()
+	return applyMapping(m, raw, now)
+}
 
-	switch p.HookEventName {
-	case "SessionStart":
-		events = append(events, store.Event{
-			Kind: store.KindSessionMeta, At: at,
-			Tool: "codex", Model: p.Model, SessionID: p.SessionID,
-		})
-	case "UserPromptSubmit":
-		if p.Prompt != "" {
-			events = append(events, store.Event{Kind: store.KindPrompt, At: at, Text: p.Prompt})
-		}
-	case "PostToolUse":
-		var in codexToolInput
-		_ = json.Unmarshal(p.ToolInput, &in)
-		switch p.ToolName {
-		case "Write":
-			if in.FilePath != "" {
-				events = append(events, store.Event{Kind: store.KindFileTouch, At: at, Path: in.FilePath, Op: "write"})
-			}
-		case "Edit", "MultiEdit":
-			if in.FilePath != "" {
-				events = append(events, store.Event{Kind: store.KindFileTouch, At: at, Path: in.FilePath, Op: "edit"})
-			}
-		case "NotebookEdit":
-			if in.NotebookPath != "" {
-				events = append(events, store.Event{Kind: store.KindFileTouch, At: at, Path: in.NotebookPath, Op: "edit"})
-			}
-		case "Bash":
-			if in.Command != "" {
-				var resp codexToolResponse
-				_ = json.Unmarshal(p.ToolResponse, &resp)
-				events = append(events, store.Event{Kind: store.KindCommand, At: at, Cmd: in.Command, ExitCode: resp.ExitCode})
-			}
-		default:
-			if isApplyPatchTool(p.ToolName) {
-				events = append(events, codexPatchTouches(codexPatchText(p.ToolInput), at)...)
-			}
-		}
-	case "Stop":
-		events = append(events, store.Event{Kind: store.KindSessionEnd, At: at})
-	}
-	return events, sessionID, cwd
+// codexPatchInput carries the fields a patch envelope may arrive under.
+type codexPatchInput struct {
+	Patch   string `json:"patch"`
+	Input   string `json:"input"`
+	Content string `json:"content"`
+	Cmd     string `json:"cmd"`
+	Command string `json:"command"`
+	Text    string `json:"text"`
 }
 
 func isApplyPatchTool(name string) bool {
@@ -104,7 +54,7 @@ func codexPatchText(raw json.RawMessage) string {
 	if err := json.Unmarshal(raw, &text); err == nil {
 		return text
 	}
-	var in codexToolInput
+	var in codexPatchInput
 	_ = json.Unmarshal(raw, &in)
 	return firstNonEmpty(in.Patch, in.Input, in.Content, in.Cmd, in.Command, in.Text)
 }
