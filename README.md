@@ -209,11 +209,16 @@ PATH — `brew uninstall shale` alone silences everything for you personally.
 
 ## Related projects
 
+Prism and Shale are the two core open-source projects. Mason is the incubating
+reference agent that integrates both. Grove is the shared semantic graph
+engine embedded by Prism, not another product Prism users must configure.
+
 | Project | Role | License |
 |---|---|---|
 | **Shale** | Agent PR evidence — this repo | Apache-2.0 |
-| [**Prism**](https://github.com/provasign/prism) | Graph-ranked context delivery for coding agents | MIT |
-| [**Grove**](https://github.com/provasign/grove) | Persistent code-graph engine (used by Prism, usable directly) | MIT |
+| [**Prism**](https://github.com/provasign/prism) | Semantic change intelligence for developers, coding agents, and CI | Apache-2.0 |
+| [**Mason**](https://github.com/provasign/mason) | Incubating reference coding agent for Prism and Shale | Apache-2.0 |
+| [**Grove**](https://github.com/provasign/grove) | Shared semantic graph engine embedded by Prism | Apache-2.0 |
 
 ## Repository layout
 
