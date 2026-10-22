@@ -62,7 +62,7 @@ Key points:
 **Homebrew (macOS / Linux):**
 
 ```sh
-brew install provasign/shale/shale
+brew install provasign/tap/shale
 ```
 
 Newer Homebrew versions ask you to trust third-party taps once — if brew

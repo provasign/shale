@@ -25,7 +25,7 @@ brews:
   - name: shale
     repository:
       owner: provasign
-      name: homebrew-shale
+      name: homebrew-tap
     directory: Formula
     homepage: https://github.com/provasign/shale
     description: "Agent PR evidence — intent capture and session evidence rendered on pull requests"

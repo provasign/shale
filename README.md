@@ -45,7 +45,7 @@ your agent, your push, your CI, or your merge.
 ## Quickstart
 
 ```sh
-brew install provasign/shale/shale
+brew install provasign/tap/shale
 cd your-repo
 shale init
 git add . && git commit -m "chore: enable shale" && git push

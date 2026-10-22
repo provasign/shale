@@ -16,7 +16,7 @@ each failure mode, in the order people usually hit them.
 Make sure the tap-qualified name was used and your shell has rehashed:
 
 ```sh
-brew install provasign/shale/shale
+brew install provasign/tap/shale
 hash -r        # or open a new terminal
 shale version
 ```
