@@ -71,7 +71,7 @@ jobs:
           fi
 
           tap="$(mktemp -d)"
-          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/provasign/homebrew-shale.git" "${tap}"
+          git clone "https://x-access-token:${HOMEBREW_TAP_TOKEN}@github.com/provasign/homebrew-tap.git" "${tap}"
           mkdir -p "${tap}/Formula"
           cp "${formula}" "${tap}/Formula/shale.rb"
 
