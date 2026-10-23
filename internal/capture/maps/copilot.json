@@ -1,0 +1,32 @@
+{
+  "tool": "copilot",
+  "locate": {
+    "session_id": ["session_id", "sessionId", "thread_id", "threadId", "conversation_id", "conversationId"],
+    "cwd": ["cwd", "workspaceRoot", "workspace_root"],
+    "event_name": ["hook_event_name", "hookEventName"],
+    "prompt": ["prompt", "text"],
+    "model": ["model"],
+    "tool_name": ["tool_name", "toolName"],
+    "tool_input": ["tool_input", "toolInput", "tool_info", "toolInfo"],
+    "tool_response": ["tool_response", "toolResponse"]
+  },
+  "input": {
+    "file_path": ["file_path", "filePath", "path", "notebook_path"],
+    "command": ["command"],
+    "exit_code": ["exit_code", "exitCode"]
+  },
+  "events": {
+    "sessionStart": { "action": "session_meta" },
+    "userPromptSubmitted": { "action": "prompt" },
+    "postToolUse": { "action": "tool_use" },
+    "sessionEnd": { "action": "session_end" }
+  },
+  "tools": {
+    "Write": { "action": "file_touch", "op": "write" },
+    "Edit": { "action": "file_touch", "op": "edit" },
+    "MultiEdit": { "action": "file_touch", "op": "edit" },
+    "Bash": { "action": "command" },
+    "Terminal": { "action": "command" },
+    "Shell": { "action": "command" }
+  }
+}
