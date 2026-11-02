@@ -105,6 +105,13 @@ A PR with **no** evidence gets an explicit no-evidence card instead of
 silence, and files changed outside the session are flagged — the card is
 honest about what it doesn't know.
 
+When the repository also uses [Stele](https://github.com/provasign/stele),
+the card gains a **Requirements** section, read from the
+`.stele/cards/*.json` files the PR commits. It shows whether the owner
+approved the requirements the change adds, changes or retires, the
+owner's decisions, and which approved requirements the code touches.
+Shale renders that file as data and never runs Stele.
+
 ## How it works
 
 ```text

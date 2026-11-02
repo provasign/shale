@@ -106,7 +106,24 @@ func renderLocal(stdout, stderr io.Writer) int {
 		}
 	}
 
-	fmt.Fprintln(stdout, render.Card(render.Input{Shales: shales, PRFiles: prFiles}))
+	// Stele's cards among the changed files, as the PR would carry them.
+	var cards []*render.SteleCard
+	for _, cf := range prFiles {
+		if filepath.ToSlash(filepath.Dir(cf.Path)) != render.SteleCardDir || !strings.HasSuffix(cf.Path, ".json") {
+			continue
+		}
+		raw, err := os.ReadFile(filepath.Join(root, cf.Path))
+		if err != nil {
+			continue
+		}
+		if c, err := render.ParseSteleCard(raw); err == nil {
+			cards = append(cards, c)
+		} else {
+			fmt.Fprintf(stderr, "shale render: skipping %s: %v\n", cf.Path, err)
+		}
+	}
+
+	fmt.Fprintln(stdout, render.Card(render.Input{Shales: shales, PRFiles: prFiles, Stele: cards}))
 	return 0
 }
 

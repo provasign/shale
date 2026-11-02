@@ -36,6 +36,9 @@ type Input struct {
 	Shales      []*store.Shale
 	PRFiles     []ChangedFile
 	TamperFlags []string // pre-computed warnings, one line each
+	// Stele are the requirement cards Stele committed for this PR's changes
+	// (SteleCardDir), already parsed.
+	Stele []*SteleCard
 	// BlobBase is the base URL for blob links, e.g.
 	// "https://github.com/owner/repo/blob/<sha>". When set, transcript
 	// references in the card become clickable links.
@@ -58,6 +61,11 @@ func Card(in Input) string {
 		if cf.Path == ".shale" || strings.HasPrefix(cf.Path, ".shale/") {
 			continue
 		}
+		// Stele's registry and cards are its bookkeeping too, accounted
+		// for by its section when it has one.
+		if len(in.Stele) > 0 && strings.HasPrefix(cf.Path, ".stele/") {
+			continue
+		}
 		kept = append(kept, cf)
 	}
 	in.PRFiles = kept
@@ -70,6 +78,7 @@ func Card(in Input) string {
 	writeHookValidationNotes(&b, in.Shales)
 	writeIntents(&b, in.Shales, in.BlobBase)
 	writeCompletions(&b, in.Shales)
+	writeStele(&b, in.Stele)
 	writeFiles(&b, in)
 	writeChecks(&b, in.Shales)
 	return b.String()

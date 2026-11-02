@@ -243,3 +243,41 @@ func TestRunIgnoresInheritedBaseBranchShale(t *testing.T) {
 		t.Fatalf("inherited base-branch evidence rendered:\n%s", res.Card)
 	}
 }
+
+func TestRunRendersSteleCardsInPR(t *testing.T) {
+	s := validShale("SESS01", nil)
+	f := &fakeForge{
+		head: "headsha",
+		files: []render.ChangedFile{
+			{Path: "main.go", Status: "modified"},
+			{Path: ".shale/SESS01.yaml", Status: "added"},
+			{Path: ".stele/cards/fix.json", Status: "added"},
+			{Path: ".stele/cards/broken.json", Status: "added"},
+			{Path: ".stele/cards/old.json", Status: "removed"},
+			{Path: ".stele/registry/change-fix.yaml", Status: "added"},
+		},
+		contents: map[string][]byte{
+			".shale/SESS01.yaml":       shaleBytes(t, s),
+			".stele/cards/fix.json":    []byte(`{"stele_card":1,"change":"fix","status":"questions","open_questions":1,"requirements":[{"title":"Fix the thing","change":"added"}]}`),
+			".stele/cards/broken.json": []byte(`{nope`),
+		},
+		commits:  []string{"c1"},
+		touching: map[string][]string{".shale/SESS01.yaml": {"c1"}},
+	}
+	res, err := Run(context.Background(), f, 7)
+	if err != nil {
+		t.Fatal(err)
+	}
+	card := f.comments[0]
+	for _, must := range []string{"### Requirements · Stele", "Waiting for the owner**: 1 question open", "| Fix the thing | added |", "invalid Stele card broken.json"} {
+		if !strings.Contains(card, must) {
+			t.Errorf("card missing %q:\n%s", must, card)
+		}
+	}
+	if strings.Contains(card, "change-fix.yaml") {
+		t.Errorf("Stele's registry files must not be listed as changed files:\n%s", card)
+	}
+	if len(res.Tampered) != 1 {
+		t.Errorf("warnings = %v", res.Tampered)
+	}
+}

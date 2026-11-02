@@ -42,7 +42,12 @@ func Run(ctx context.Context, f forge.Forge, pr int) (Result, error) {
 	res.Shales = len(shales)
 	res.Tampered = tamper
 
+	cards, cardWarnings := loadSteleCards(ctx, f, head, prFiles)
+	tamper = append(tamper, cardWarnings...)
+	res.Tampered = tamper
+
 	in := render.Input{
+		Stele:       cards,
 		Shales:      shales,
 		PRFiles:     prFiles,
 		TamperFlags: tamper,
@@ -140,6 +145,31 @@ func loadShales(ctx context.Context, f forge.Forge, head string, pr int, prFiles
 		shales = append(shales, s)
 	}
 	return shales, warnings
+}
+
+// loadSteleCards fetches the requirement cards Stele committed in this PR
+// (.stele/cards/*.json added or edited by it). An unreadable card is a
+// warning, never a failure.
+func loadSteleCards(ctx context.Context, f forge.Forge, head string, prFiles []render.ChangedFile) ([]*render.SteleCard, []string) {
+	var cards []*render.SteleCard
+	var warnings []string
+	for _, cf := range prFiles {
+		if cf.Status == "removed" || path.Dir(cf.Path) != render.SteleCardDir || !strings.HasSuffix(cf.Path, ".json") {
+			continue
+		}
+		raw, err := f.FileContent(ctx, head, cf.Path)
+		if err != nil {
+			warnings = append(warnings, fmt.Sprintf("could not fetch %s", cf.Path))
+			continue
+		}
+		c, err := render.ParseSteleCard(raw)
+		if err != nil {
+			warnings = append(warnings, fmt.Sprintf("invalid Stele card %s — ignored", path.Base(cf.Path)))
+			continue
+		}
+		cards = append(cards, c)
+	}
+	return cards, warnings
 }
 
 func shalePathsInPR(prFiles []render.ChangedFile) []string {
