@@ -54,4 +54,3 @@ step "shale init       writes your agents' instructions and capture hooks, .shal
 printf '                      and a workflow that renders the card on pull requests\n'
 step "Commit and push what it writes"
 step "Work with your coding agent as usual; its next pull request carries a card"
-printf '\nUsing Prism or Stele too? `provasign init` sets them up together.\n'
