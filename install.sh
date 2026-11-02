@@ -21,16 +21,19 @@ url="https://github.com/${REPO}/releases/download/${tag}/shale_${os}_${arch}.tar
 tmp=$(mktemp -d)
 trap 'rm -rf "$tmp"' EXIT
 
+asset="shale_${os}_${arch}.tar.gz"
 echo "Downloading shale ${tag} (${os}/${arch})..."
-curl -fsSL "$url" -o "$tmp/shale.tar.gz"
+# Saved under the asset's own name: checksums.txt names it, and `-c` looks
+# for that file.
+curl -fsSL "$url" -o "$tmp/$asset"
 
 if curl -fsSL "https://github.com/${REPO}/releases/download/${tag}/checksums.txt" -o "$tmp/checksums.txt" 2>/dev/null; then
-  (cd "$tmp" && grep "shale_${os}_${arch}.tar.gz" checksums.txt | sha256sum -c - >/dev/null 2>&1) ||
-  (cd "$tmp" && grep "shale_${os}_${arch}.tar.gz" checksums.txt | shasum -a 256 -c - >/dev/null 2>&1) ||
+  (cd "$tmp" && grep " ${asset}\$" checksums.txt | sha256sum -c - >/dev/null 2>&1) ||
+  (cd "$tmp" && grep " ${asset}\$" checksums.txt | shasum -a 256 -c - >/dev/null 2>&1) ||
     { echo "shale: checksum verification failed" >&2; exit 1; }
 fi
 
-tar -xzf "$tmp/shale.tar.gz" -C "$tmp" shale
+tar -xzf "$tmp/$asset" -C "$tmp" shale
 
 dest=/usr/local/bin
 if [ ! -w "$dest" ]; then
