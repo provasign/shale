@@ -44,7 +44,7 @@ func TestCardRendersSteleRequirements(t *testing.T) {
 		"| Summer reading program | added |",
 		"| Limit loans | retired |",
 		"How Stele reads them",
-		"`precondition Member.borrow when (self.booksOnLoan &lt; 10)`",
+		"<code>precondition Member.borrow when (self.booksOnLoan &lt; 10)</code>",
 		"→ *One is an exception to the other: restate them as one request* (owner, 2026-11-02)",
 		"**Code touching approved requirements** (as of 2026-11-02 03:57 UTC)",
 		"- Summer reading program — Borrow (lib.go:7) is the step Member.borrow",

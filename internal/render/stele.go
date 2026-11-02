@@ -81,7 +81,9 @@ func writeStele(b *strings.Builder, cards []*SteleCard) {
 			var readings []string
 			for _, r := range c.Requirements {
 				for _, x := range r.Reading {
-					readings = append(readings, fmt.Sprintf("- %s: %s", Sanitize(r.Title), code(Sanitize(x))))
+					// <code>, not a code span: GitHub shows the escaped
+					// text of an HTML element as written, so ">" reads ">".
+					readings = append(readings, fmt.Sprintf("- %s: <code>%s</code>", Sanitize(r.Title), Sanitize(x)))
 				}
 			}
 			if len(readings) > 0 {
