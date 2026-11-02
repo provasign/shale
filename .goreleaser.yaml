@@ -30,4 +30,15 @@ brews:
     homepage: https://github.com/provasign/shale
     description: "Agent PR evidence — intent capture and session evidence rendered on pull requests"
     license: Apache-2.0
+    # What Shale is for, and the next steps: the same words as install.sh.
+    caveats: |
+      Shale: evidence after the edit. It records what your coding agent was asked,
+      touched and checked, and shows it as a card on the pull request.
+
+      Next steps:
+        1. cd your-repo
+        2. shale init       writes instructions and capture hooks for your agents, .shale/,
+                            and a workflow that renders the card on pull requests
+        3. Commit and push what it writes
+        4. Work as usual; the next pull request from your agent carries a card
     skip_upload: true
