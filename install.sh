@@ -39,4 +39,19 @@ if [ ! -w "$dest" ]; then
 fi
 install -m 0755 "$tmp/shale" "$dest/shale"
 echo "Installed: $dest/shale"
-echo "Next: cd your-repo && shale init   (5 minutes, no account)"
+
+# What it is for, and the next steps.
+n=0
+step() { n=$((n+1)); printf '  %d. %s\n' "$n" "$1"; }
+printf '\nshale %s: evidence after the edit.\n' "$tag"
+printf 'Shale records what your coding agent was asked, touched and checked,\nand shows it as a card on the pull request. No account, no server.\n\nNext steps:\n'
+case ":$PATH:" in
+  *":$dest:"*) ;;
+  *) step "Put shale on your PATH:  export PATH=\"$dest:\$PATH\"" ;;
+esac
+step "cd your-repo"
+step "shale init       writes your agents' instructions and capture hooks, .shale/,"
+printf '                      and a workflow that renders the card on pull requests\n'
+step "Commit and push what it writes"
+step "Work with your coding agent as usual; its next pull request carries a card"
+printf '\nUsing Prism or Stele too? `provasign init` sets them up together.\n'
