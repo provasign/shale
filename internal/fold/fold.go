@@ -85,9 +85,15 @@ func Run(opts Options) (Result, error) {
 	return res, nil
 }
 
-// foldSession folds one session. Returns nil paths when the session was
-// already finalized and the remnant log carries no task evidence (idempotent
-// skip).
+// foldSession folds one session: one evidence file per task. A completion
+// (shale done) closes a task, and a request declared after it starts the
+// next one, in the same session: an agent working through several features
+// in one conversation used to get one file, holding only the last request,
+// the earlier ones reduced to notes; a requirement checked against the
+// requests (Stele) then read the next feature as an edit of the one before
+// (a developer trial, 2026-11-03). Returns nil paths when the session was
+// already finalized and the remnant log carries no task evidence
+// (idempotent skip).
 func foldSession(opts Options, sessionID string) ([]string, error) {
 	events, err := store.ReadEvents(store.SessionPath(opts.RepoRoot, sessionID))
 	if err != nil {
@@ -96,29 +102,83 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 	if len(events) == 0 {
 		return nil, fmt.Errorf("no events")
 	}
-
-	evidenceID := sessionID
-	yamlRel := filepath.Join(".shale", sessionID+".yaml")
-	continuation := false
-	if _, err := os.Stat(filepath.Join(opts.RepoRoot, yamlRel)); err == nil {
-		// Already finalized — append-only, never rewrite (spec rule 2). But
-		// hook adapters recreate the JSONL when events land after a finalize
-		// (e.g. a `shale done` that arrived after the pre-push hook ran).
-		// Real task evidence in that remnant folds into a continuation file;
-		// ambient capture alone (commands, prompts) is archived without
-		// minting one.
-		if !hasTaskEvidence(events) {
-			return nil, nil
+	exists := func(id string) bool {
+		_, err := os.Stat(filepath.Join(opts.RepoRoot, ".shale", id+".yaml"))
+		return err == nil
+	}
+	continuation := exists(sessionID)
+	if continuation && !hasTaskEvidence(events) {
+		// Already finalized — append-only, never rewrite (spec rule 2). Ambient
+		// capture alone (commands, prompts) is archived without minting a file.
+		return nil, nil
+	}
+	tasks := splitTasks(events)
+	written := []string{}
+	for i, task := range tasks {
+		id, note := sessionID, ""
+		if continuation || i > 0 {
+			// Hook adapters recreate the JSONL when events land after a
+			// finalize (e.g. a shale done that arrived after the pre-push
+			// hook ran); a later task of the session is another file too.
+			for n := 2; ; n++ {
+				if id = fmt.Sprintf("%s-c%d", sessionID, n); !exists(id) {
+					break
+				}
+			}
+			note = fmt.Sprintf("continuation of session %s — events captured after its evidence was finalized", sessionID)
+			if i > 0 {
+				note = fmt.Sprintf("a later task of session %s", sessionID)
+			}
 		}
-		continuation = true
-		for n := 2; ; n++ {
-			evidenceID = fmt.Sprintf("%s-c%d", sessionID, n)
-			yamlRel = filepath.Join(".shale", evidenceID+".yaml")
-			if _, err := os.Stat(filepath.Join(opts.RepoRoot, yamlRel)); os.IsNotExist(err) {
-				break
+		var until time.Time
+		if i+1 < len(tasks) {
+			until = tasks[i+1][0].At // the next task's files are its own
+		}
+		w, err := foldRecord(opts, id, task, note, until)
+		if err != nil {
+			return written, err
+		}
+		written = append(written, w...)
+	}
+	return written, nil
+}
+
+// splitTasks cuts a session's events into tasks: after a completion, a
+// request declared later starts the next task, with the prompts and
+// commands that came between. A request declared again before the
+// completion restates the same task. Later tasks get the session's metadata.
+func splitTasks(events []store.Event) [][]store.Event {
+	var meta []store.Event
+	for _, ev := range events {
+		if ev.Kind == store.KindSessionMeta {
+			meta = append(meta, ev)
+		}
+	}
+	var tasks [][]store.Event
+	begin, closed := 0, -1
+	for i, ev := range events {
+		switch ev.Kind {
+		case store.KindCompletion:
+			closed = i + 1
+		case store.KindIntent:
+			if closed > begin {
+				tasks = append(tasks, events[begin:closed])
+				begin, closed = closed, -1
 			}
 		}
 	}
+	tasks = append(tasks, events[begin:])
+	for i := 1; i < len(tasks); i++ {
+		tasks[i] = append(append([]store.Event{}, meta...), tasks[i]...)
+	}
+	return tasks
+}
+
+// foldRecord writes one task's evidence file, evidenceID, from its events.
+// note, when set, explains how the file relates to its session; until, when
+// set, bounds the git fallback to commits made before the next task.
+func foldRecord(opts Options, evidenceID string, events []store.Event, note string, until time.Time) ([]string, error) {
+	yamlRel := filepath.Join(".shale", evidenceID+".yaml")
 	yamlAbs := filepath.Join(opts.RepoRoot, yamlRel)
 
 	eng := redact.New()
@@ -135,11 +195,8 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 		},
 		Notes: []store.Note{},
 	}
-	if continuation {
-		s.Notes = append(s.Notes, store.Note{
-			Text: fmt.Sprintf("continuation of session %s — events captured after its evidence was finalized", sessionID),
-			At:   s.CreatedAt,
-		})
+	if note != "" {
+		s.Notes = append(s.Notes, store.Note{Text: note, At: s.CreatedAt})
 	}
 
 	var prompts []store.Event
@@ -190,10 +247,14 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 				intent.Title, redactions = applyRedact(eng, ev.Title, redactions)
 				intent.Body, redactions = applyRedact(eng, ev.Body, redactions)
 			}
-			// A new intent never adopts an earlier cycle's completion.
-			if cur.intent != nil || cur.completion != nil {
+			// A new intent never adopts an earlier cycle's completion; one
+			// declared again before the completion restates the request.
+			switch {
+			case cur.completion != nil:
 				cycles = append(cycles, cur)
 				cur = taskCycle{}
+			case cur.intent != nil:
+				s.Notes = append(s.Notes, store.Note{Text: "request restated; it read: " + cur.intent.Title, At: cur.intent.DeclaredAt})
 			}
 			cur.intent = intent
 
@@ -311,7 +372,7 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 	// paths it saw; git fills only the gaps, with ops derived from git's own
 	// statuses — a deletion recorded as "edit" is misevidence.
 	if s.Intent != nil || s.Completion != nil {
-		for _, fc := range gitx.FilesChangedSince(opts.RepoRoot, s.CreatedAt) {
+		for _, fc := range gitx.FilesChangedBetween(opts.RepoRoot, s.CreatedAt, until) {
 			if touches[fc.Path] != nil {
 				continue
 			}

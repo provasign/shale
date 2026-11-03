@@ -14,12 +14,20 @@ Predicate URI (for future in-toto wrapping by a hosted notary):
 ## 1. File placement
 
 ```
-.shale/<session-id>.yaml             # one file per agent session, append-only
+.shale/<session-id>.yaml             # one file per task of an agent session, append-only
+.shale/<session-id>-c<n>.yaml        # the session's later tasks, n = 2, 3, ...
 .shale/transcripts/<session-id>.md   # redacted transcript (optional by privacy mode)
 ```
 
 `<session-id>` is the agent-supplied session UUID when available, else a
 generated ULID. File names never change after first commit.
+
+A task runs from its intent to its completion (`shale done`): an intent
+declared after a completion starts the session's next task, which gets the
+first `-c<n>` name free; an intent declared again before the completion
+restates the same task, and its earlier wording stays as a note. Events that
+arrive after a session's file was finalized also go to the next `-c<n>`
+file.
 
 ## 2. Schema (v0, YAML)
 

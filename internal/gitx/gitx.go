@@ -54,6 +54,13 @@ type FileChange struct {
 // does not become this session's evidence. This feeds the `via: git` fallback
 // (ADR D4 tier 3) — honest about being a window, not a touch log.
 func FilesChangedSince(root string, t time.Time) []FileChange {
+	return FilesChangedBetween(root, t, time.Time{})
+}
+
+// FilesChangedBetween is FilesChangedSince up to until: commits made by
+// then. A zero until also counts the working tree's uncommitted changes,
+// which belong to the latest task only.
+func FilesChangedBetween(root string, t, until time.Time) []FileChange {
 	ops := map[string][]string{}
 	add := func(path, op string) {
 		path = strings.Trim(strings.TrimSpace(path), `"`)
@@ -72,6 +79,9 @@ func FilesChangedSince(root string, t time.Time) []FileChange {
 		"log", "--first-parent", "--no-merges",
 		"--since=" + t.UTC().Format(time.RFC3339),
 		"--name-status", "--pretty=format:", "HEAD",
+	}
+	if !until.IsZero() {
+		args = append(args[:4:4], append([]string{"--until=" + until.UTC().Format(time.RFC3339)}, args[4:]...)...)
 	}
 	for _, ref := range syncRefs(root) {
 		args = append(args, "^"+ref)
@@ -93,7 +103,7 @@ func FilesChangedSince(root string, t time.Time) []FileChange {
 	}
 
 	statusOut, err := run(root, "status", "--porcelain")
-	if err == nil {
+	if err == nil && until.IsZero() {
 		for _, line := range strings.Split(statusOut, "\n") {
 			if len(line) < 4 {
 				continue

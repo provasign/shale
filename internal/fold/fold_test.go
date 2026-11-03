@@ -290,27 +290,60 @@ func TestRunPairsCompletionWithPrecedingIntent(t *testing.T) {
 	if _, err := Run(Options{RepoRoot: root, Now: now}); err != nil {
 		t.Fatal(err)
 	}
-	s, err := store.Load(filepath.Join(root, ".shale", "SESSTWOTASK01.yaml"))
+	// One file per task: the first keeps its own request and completion,
+	// the second is a file of its own and adopts no completion.
+	first, err := store.Load(filepath.Join(root, ".shale", "SESSTWOTASK01.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if s.Intent == nil || s.Intent.Title != "Untrack the paused tool" {
-		t.Fatalf("intent = %+v, want the last declared intent", s.Intent)
+	if first.Intent == nil || first.Intent.Title != "Commit the init output" || first.Completion == nil || first.Completion.Note != "init committed" {
+		t.Fatalf("first task = %+v / %+v", first.Intent, first.Completion)
 	}
-	if s.Completion != nil {
-		t.Fatalf("completion = %+v — the first task's completion must not attach to the second intent", s.Completion)
+	second, err := store.Load(filepath.Join(root, ".shale", "SESSTWOTASK01-c2.yaml"))
+	if err != nil {
+		t.Fatal(err)
 	}
-	var sawIntent, sawDone bool
+	if second.Intent == nil || second.Intent.Title != "Untrack the paused tool" {
+		t.Fatalf("second task intent = %+v", second.Intent)
+	}
+	if second.Completion != nil {
+		t.Fatalf("completion = %+v — the first task's completion must not attach to the second intent", second.Completion)
+	}
+}
+
+// A request declared again before its completion restates the same task:
+// one file, the latest wording, the earlier one in a note.
+func TestRunRestatedRequestIsOneTask(t *testing.T) {
+	root := initRepo(t)
+	for _, ev := range []store.Event{
+		{Kind: store.KindIntent, At: t0, Title: "Limit loans to 5 books"},
+		{Kind: store.KindIntent, At: t0.Add(time.Minute), Title: "Limit loans to 5 books, 10 in summer"},
+		{Kind: store.KindCompletion, At: t0.Add(2 * time.Minute), Note: "limit in place"},
+	} {
+		if err := store.AppendEvent(root, "SESSRESTATE01", ev); err != nil {
+			t.Fatal(err)
+		}
+	}
+	res, err := Run(Options{RepoRoot: root, Now: now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Written) != 1 {
+		t.Fatalf("written = %v, want one file", res.Written)
+	}
+	s, err := store.Load(filepath.Join(root, ".shale", "SESSRESTATE01.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if s.Intent == nil || s.Intent.Title != "Limit loans to 5 books, 10 in summer" || s.Completion == nil {
+		t.Fatalf("intent %+v completion %+v", s.Intent, s.Completion)
+	}
+	restated := false
 	for _, n := range s.Notes {
-		if strings.Contains(n.Text, "Commit the init output") {
-			sawIntent = true
-		}
-		if strings.Contains(n.Text, "init committed") {
-			sawDone = true
-		}
+		restated = restated || strings.Contains(n.Text, "restated") && strings.Contains(n.Text, "Limit loans to 5 books")
 	}
-	if !sawIntent || !sawDone {
-		t.Fatalf("earlier cycle not preserved in notes: %+v", s.Notes)
+	if !restated {
+		t.Fatalf("earlier wording not in the notes: %+v", s.Notes)
 	}
 }
 
