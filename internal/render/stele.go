@@ -144,6 +144,8 @@ func writeSteleStatus(b *strings.Builder, c *SteleCard) {
 		fmt.Fprintf(b, "> ⚠️ **Stele could not check this change**: its rules do not compile together\n")
 	case "failed":
 		fmt.Fprintf(b, "> ⚠️ **Stele could not check this change**: the model could not read its requirements; nothing was checked\n")
+	case "undecided":
+		fmt.Fprintf(b, "> ⚠️ **Stele could not decide part of this change**: the solver could not settle what a step must do; the owner can word that requirement more simply\n")
 	default:
 		fmt.Fprintf(b, "> ⚠️ **Unknown Stele status** %s\n", code(Sanitize(c.Status)))
 	}
