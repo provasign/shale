@@ -23,6 +23,8 @@ Usage:
                                  agent-called AFTER the work is complete
   shale capture <adapter>        hook entry point (reads hook JSON on stdin)
   shale finalize [--auto-commit] fold session events into committed shale YAML
+  shale precommit                 git pre-commit hook: stage the evidence of tasks closed since the last commit
+  shale prepush                   git pre-push hook: say which sessions this push does not carry yet
   shale render --local | --pr N  render the card (terminal preview | post to PR)
   shale note "<text>"            manual annotation escape hatch
   shale doctor                   diagnose the setup
@@ -47,6 +49,10 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return cmdCapture(args[1:], stdin, stderr)
 	case "finalize":
 		return cmdFinalize(args[1:], stdout, stderr)
+	case "precommit":
+		return cmdPrecommit(args[1:], stdout, stderr)
+	case "prepush":
+		return cmdPrepush(args[1:], stdout, stderr)
 	case "render":
 		return cmdRender(args[1:], stdout, stderr)
 	case "note":

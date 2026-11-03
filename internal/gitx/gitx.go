@@ -244,3 +244,32 @@ func AutoCommit(root string, paths []string, message string) (committed bool, er
 	}
 	return true, nil
 }
+
+// Stage adds paths to the index, for the commit being made or the next one.
+func Stage(root string, paths []string) error {
+	if len(paths) == 0 {
+		return nil
+	}
+	_, err := run(root, append([]string{"add", "--"}, paths...)...)
+	return err
+}
+
+// OnlyEvidencePending reports whether the working tree has nothing to
+// commit but Shale's own files: the code was committed already, so the
+// evidence has no commit of the user's to ride and gets its own.
+func OnlyEvidencePending(root string) bool {
+	out, err := run(root, "status", "--porcelain")
+	if err != nil {
+		return false
+	}
+	for _, line := range strings.Split(out, "\n") {
+		if len(line) < 4 {
+			continue
+		}
+		path := strings.Trim(strings.TrimSpace(line[3:]), `"`)
+		if path != ".shale" && !strings.HasPrefix(path, ".shale/") {
+			return false
+		}
+	}
+	return true
+}

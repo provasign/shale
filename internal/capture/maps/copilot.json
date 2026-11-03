@@ -19,7 +19,7 @@
     "sessionStart": { "action": "session_meta" },
     "userPromptSubmitted": { "action": "prompt" },
     "postToolUse": { "action": "tool_use" },
-    "sessionEnd": { "action": "session_end" }
+    "sessionEnd": { "action": "session_close" }
   },
   "tools": {
     "Write": { "action": "file_touch", "op": "write" },

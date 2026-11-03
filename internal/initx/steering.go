@@ -25,11 +25,12 @@ const SteeringBlock = SteeringStart + `
 Before editing any file, call:
   shale intent "<one line: what you are about to do>" [--body "<why, constraints, approach>"]
 
-After completing the task (before asking for review), call:
+After completing each task, before you commit it, call:
   shale done [--note "<brief: what you did, any deviations>"] \
              [--tokens-in <n>] [--tokens-out <n>] \
              [--model <model-id>] [--iterations <n>]
 
+shale done stages the evidence, so your commit carries it with the code.
 Everything else (file tracking, command recording) is automatic.
 
 If shale is not on your PATH, do not try to install it yourself. Tell the

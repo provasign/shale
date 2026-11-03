@@ -136,13 +136,79 @@ func hasShaleHook(entries []any, command string) bool {
 	return false
 }
 
-// prePushScript is the pre-push hook: run finalize, never block the push
-// (fail-open, ADR D5).
+// prePushScript is the pre-push hook. It never commits, so nothing is
+// created while the push is in flight (git sends such a commit, or leaves it
+// behind, as it pleases), and never blocks the push (fail-open, ADR D5): it
+// says which sessions the push does not carry yet. The evidence is committed
+// with the code, by shale done and the pre-commit hook.
 const prePushScript = `#!/bin/sh
+# shale pre-push hook (managed by 'shale init')
+command -v shale >/dev/null 2>&1 && shale prepush
+exit 0
+`
+
+// oldPrePushScripts are pre-push hooks earlier releases wrote, replaced on
+// init as ours.
+var oldPrePushScripts = []string{`#!/bin/sh
 # shale pre-push hook (managed by 'shale init')
 shale finalize --auto-commit || echo "shale: finalize failed (push continues)" >&2
 exit 0
+`}
+
+// preCommitScript is the pre-commit hook: the commit carries the evidence of
+// the tasks closed since the last one. Never blocks the commit.
+const preCommitScript = `#!/bin/sh
+# shale pre-commit hook (managed by 'shale init')
+command -v shale >/dev/null 2>&1 && shale precommit
+exit 0
 `
+
+// preCommitLine is what init adds to a pre-commit hook it did not write
+// (Stele's, a linter's), right after the shebang, so it runs before
+// anything there that could end the script.
+const preCommitLine = "{ command -v shale >/dev/null 2>&1 && shale precommit; } || true # shale (shale init)"
+
+// PreCommitHookPath is where this repo's pre-commit hook lives (see
+// PrePushHookPath).
+func PreCommitHookPath(repoRoot string) string {
+	if dir := gitx.HooksDir(repoRoot); dir != "" {
+		return filepath.Join(dir, "pre-commit")
+	}
+	return filepath.Join(repoRoot, ".git", "hooks", "pre-commit")
+}
+
+// InstallPreCommitHook writes the pre-commit hook, or adds Shale's line to
+// one that is already there: unlike pre-push, a pre-commit hook is commonly
+// another tool's, and the evidence must ride the user's commit either way.
+// Reports whether it added to an existing hook.
+func InstallPreCommitHook(repoRoot string) (chained bool, err error) {
+	if _, err := os.Stat(filepath.Join(repoRoot, ".git")); err != nil {
+		return false, nil
+	}
+	path := PreCommitHookPath(repoRoot)
+	raw, rerr := os.ReadFile(path)
+	if rerr != nil {
+		if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			return false, err
+		}
+		return false, os.WriteFile(path, []byte(preCommitScript), 0o755)
+	}
+	text := string(raw)
+	if strings.Contains(text, "shale precommit") {
+		return false, nil // ours, or already added
+	}
+	lines := strings.SplitAfter(text, "\n")
+	at := 0
+	if len(lines) > 0 && strings.HasPrefix(lines[0], "#!") {
+		at = 1
+	}
+	out := strings.Join(lines[:at], "")
+	if at == 1 && !strings.HasSuffix(out, "\n") {
+		out += "\n"
+	}
+	out += preCommitLine + "\n" + strings.Join(lines[at:], "")
+	return true, os.WriteFile(path, []byte(out), 0o755)
+}
 
 // PrePushHookPath returns where this repo's pre-push hook actually lives:
 // git's effective hooks directory, which accounts for core.hooksPath
@@ -168,7 +234,13 @@ func InstallPrePushHook(repoRoot string) (skipped bool, err error) {
 		if string(raw) == prePushScript {
 			return false, nil // already ours
 		}
-		return true, nil // someone else's hook — never clobber
+		old := false
+		for _, s := range oldPrePushScripts {
+			old = old || string(raw) == s
+		}
+		if !old {
+			return true, nil // someone else's hook — never clobber
+		}
 	}
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return false, err

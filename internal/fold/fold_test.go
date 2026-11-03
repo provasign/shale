@@ -590,3 +590,44 @@ func TestRunFoldsOnlyTheNamedSessions(t *testing.T) {
 		t.Fatalf("the other session's log was taken: %v", err)
 	}
 }
+
+// At commit time only closed tasks are recorded: the task in progress keeps
+// its events in the log, with the session's metadata, and is recorded under
+// the next name once it is closed.
+func TestRunClosedOnlyKeepsTheOpenTask(t *testing.T) {
+	root := initRepo(t)
+	for _, ev := range []store.Event{
+		{Kind: store.KindSessionMeta, At: t0, Tool: "codex"},
+		{Kind: store.KindIntent, At: t0.Add(time.Minute), Title: "Create tasks"},
+		{Kind: store.KindCompletion, At: t0.Add(2 * time.Minute), Note: "created"},
+		{Kind: store.KindIntent, At: t0.Add(3 * time.Minute), Title: "List tasks"},
+	} {
+		if err := store.AppendEvent(root, "SESSOPEN01", ev); err != nil {
+			t.Fatal(err)
+		}
+	}
+	res, err := Run(Options{RepoRoot: root, Now: now, ClosedOnly: true})
+	if err != nil || len(res.Written) != 1 || !strings.HasSuffix(res.Written[0], "SESSOPEN01.yaml") {
+		t.Fatalf("written %v, %v; want the closed task only", res.Written, err)
+	}
+	open, err := store.ReadEvents(store.SessionPath(root, "SESSOPEN01"))
+	if err != nil || len(open) != 2 || open[0].Kind != store.KindSessionMeta || open[1].Title != "List tasks" {
+		t.Fatalf("open log = %+v, %v; want the metadata and the open task", open, err)
+	}
+
+	// Nothing closed yet: nothing is recorded, the log stays as it is.
+	if res, err = Run(Options{RepoRoot: root, Now: now, ClosedOnly: true}); err != nil || len(res.Written) != 0 {
+		t.Fatalf("second run: %v, %v", res.Written, err)
+	}
+	// The session ends for good without a done: the task is closed.
+	if err := store.AppendEvent(root, "SESSOPEN01", store.Event{Kind: store.KindSessionClose, At: t0.Add(4 * time.Minute)}); err != nil {
+		t.Fatal(err)
+	}
+	if res, err = Run(Options{RepoRoot: root, Now: now, ClosedOnly: true}); err != nil || len(res.Written) != 1 || !strings.HasSuffix(res.Written[0], "SESSOPEN01-c2.yaml") {
+		t.Fatalf("after the session ended: %v, %v", res.Written, err)
+	}
+	s, _ := store.Load(filepath.Join(root, res.Written[0]))
+	if s.Intent == nil || s.Intent.Title != "List tasks" || s.Completion == nil || !strings.Contains(s.Completion.Note, "ended without shale done") || s.Agent.Tool != "codex" {
+		t.Fatalf("record = %+v / %+v / %q", s.Intent, s.Completion, s.Agent.Tool)
+	}
+}

@@ -117,10 +117,22 @@ func cmdInit(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		if _, statErr := os.Stat(filepath.Join(root, ".git")); statErr != nil {
 			fmt.Fprintln(stdout, "  ! Pre-push hook skipped      (not a git repo — run `git init`, then `shale init` again)")
 		} else {
-			fmt.Fprintf(stdout, "  ! Pre-push hook skipped      (existing hook at %s — add `shale finalize --auto-commit` to it, or evidence will never publish)\n", initx.DisplayHookPath(root))
+			fmt.Fprintf(stdout, "  ! Pre-push hook skipped      (existing hook at %s; add `shale prepush` to it to hear which sessions a push does not carry)\n", initx.DisplayHookPath(root))
 		}
 	default:
-		fmt.Fprintln(stdout, "  ✓ Installed pre-push hook    (runs shale finalize)")
+		fmt.Fprintln(stdout, "  ✓ Installed pre-push hook    (says which sessions a push does not carry yet)")
+	}
+
+	switch chained, err := initx.InstallPreCommitHook(root); {
+	case err != nil:
+		fmt.Fprintln(stderr, "shale init: pre-commit hook:", err)
+		ok = false
+	case chained:
+		fmt.Fprintf(stdout, "  ✓ Added to the pre-commit hook (%s: commits carry the evidence of finished tasks)\n", initx.DisplayPreCommitHookPath(root))
+	default:
+		if _, statErr := os.Stat(filepath.Join(root, ".git")); statErr == nil {
+			fmt.Fprintln(stdout, "  ✓ Installed pre-commit hook  (commits carry the evidence of finished tasks)")
+		}
 	}
 
 	if !ok {

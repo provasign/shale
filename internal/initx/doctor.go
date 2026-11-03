@@ -51,8 +51,8 @@ func Doctor(repoRoot string) []Check {
 			"REMOVE the checkout step from shale.yml — pull_request_target + checkout of PR code is a privilege-escalation hole")
 	}
 
-	add("pre-push hook installed", HookRunsFinalize(repoRoot),
-		fmt.Sprintf("run `shale init` — hook location is %s (honors core.hooksPath); an existing non-shale hook there must call `shale finalize --auto-commit` itself", DisplayHookPath(repoRoot)))
+	add("pre-commit hook adds evidence to commits", HookRunsPrecommit(repoRoot),
+		fmt.Sprintf("run `shale init` — it adds `shale precommit` to the hook at %s (honors core.hooksPath)", DisplayPreCommitHookPath(repoRoot)))
 
 	// Events flowing: most recent capture activity, active or archived.
 	add("capture events seen", lastActivity(repoRoot) != "",
@@ -66,6 +66,22 @@ func Doctor(repoRoot string) []Check {
 func HookRunsFinalize(repoRoot string) bool {
 	raw, err := os.ReadFile(PrePushHookPath(repoRoot))
 	return err == nil && strings.Contains(string(raw), "shale finalize")
+}
+
+// HookRunsPrecommit reports whether the repo's pre-commit hook runs `shale
+// precommit`, so commits carry the evidence of finished tasks.
+func HookRunsPrecommit(repoRoot string) bool {
+	raw, err := os.ReadFile(PreCommitHookPath(repoRoot))
+	return err == nil && strings.Contains(string(raw), "shale precommit")
+}
+
+// DisplayPreCommitHookPath is DisplayHookPath for the pre-commit hook.
+func DisplayPreCommitHookPath(repoRoot string) string {
+	p := PreCommitHookPath(repoRoot)
+	if rel, err := filepath.Rel(repoRoot, p); err == nil && !strings.HasPrefix(rel, "..") {
+		return rel
+	}
+	return p
 }
 
 // DisplayHookPath returns the effective pre-push hook path, repo-relative
@@ -92,15 +108,15 @@ func FinalizeHookWarning(repoRoot string) string {
 	if _, err := os.Stat(filepath.Join(repoRoot, ".shale", "schema-version")); err != nil {
 		return ""
 	}
-	if HookRunsFinalize(repoRoot) {
+	if HookRunsPrecommit(repoRoot) || HookRunsFinalize(repoRoot) {
 		return ""
 	}
 	pending := 0
 	if ids, err := store.ListSessions(repoRoot); err == nil {
 		pending = len(ids)
 	}
-	return fmt.Sprintf("⚠ shale: %d recorded session(s) waiting, but the pre-push hook at %s does not run `shale finalize` — evidence will not publish on push; run `shale doctor`",
-		pending, DisplayHookPath(repoRoot))
+	return fmt.Sprintf("⚠ shale: %d recorded session(s) waiting, but the pre-commit hook at %s does not run `shale precommit` — evidence will not reach a commit; run `shale init`",
+		pending, DisplayPreCommitHookPath(repoRoot))
 }
 
 // hasCheckoutStep detects an actual `uses: actions/checkout` workflow step,

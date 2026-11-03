@@ -103,3 +103,12 @@ func TestParseTotalOnGarbage(t *testing.T) {
 		}
 	}
 }
+
+// SessionEnd is the session ending for good, unlike Stop at every turn's
+// end: only it closes a task the agent never reported done.
+func TestParseSessionEndClosesTheSession(t *testing.T) {
+	events, _, _ := ParseClaudeCode(fixture(t, "session_end.json"), now)
+	if len(events) != 1 || events[0].Kind != store.KindSessionClose {
+		t.Fatalf("events = %+v", events)
+	}
+}

@@ -17,10 +17,14 @@ const (
 	KindFileTouch   = "file_touch"   // from a hook adapter
 	KindCommand     = "command"      // from a hook adapter
 	KindSessionMeta = "session_meta" // from a hook adapter
-	KindSessionEnd  = "session_end"  // from a hook adapter
-	KindCompletion  = "completion"   // from `shale done`
-	KindPrompt      = "prompt"       // raw user prompt — transcript only, NEVER intent
-	KindNote        = "note"         // from `shale note`
+	KindSessionEnd  = "session_end"  // from a hook adapter: a turn or the session ended
+	// KindSessionClose is the agent's session ending for good (Claude Code's
+	// SessionEnd, not its per-turn Stop): it closes a task the agent never
+	// reported done.
+	KindSessionClose = "session_close"
+	KindCompletion   = "completion" // from `shale done`
+	KindPrompt       = "prompt"     // raw user prompt — transcript only, NEVER intent
+	KindNote         = "note"       // from `shale note`
 )
 
 // Event is one line of the session JSONL. Fields are a union across kinds.
@@ -201,4 +205,49 @@ func appendFile(dst, src string) error {
 		return err
 	}
 	return os.Remove(src)
+}
+
+// ArchivePart archives the folded part of a session's log and leaves the
+// rest as the log: a task still in progress keeps collecting events, and
+// is folded once it is closed.
+func ArchivePart(repoRoot, sessionID string, folded, rest []Event) error {
+	dir := filepath.Join(LocalDir(repoRoot), "archive")
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return err
+	}
+	lines := func(evs []Event) ([]byte, error) {
+		var b []byte
+		for _, ev := range evs {
+			line, err := json.Marshal(ev)
+			if err != nil {
+				return nil, err
+			}
+			b = append(append(b, line...), '\n')
+		}
+		return b, nil
+	}
+	done, err := lines(folded)
+	if err != nil {
+		return err
+	}
+	f, err := os.OpenFile(filepath.Join(dir, sessionID+".jsonl"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)
+	if err != nil {
+		return err
+	}
+	if _, err := f.Write(done); err != nil {
+		f.Close()
+		return err
+	}
+	if err := f.Close(); err != nil {
+		return err
+	}
+	open, err := lines(rest)
+	if err != nil {
+		return err
+	}
+	tmp := SessionPath(repoRoot, sessionID) + ".tmp"
+	if err := os.WriteFile(tmp, open, 0o644); err != nil {
+		return err
+	}
+	return os.Rename(tmp, SessionPath(repoRoot, sessionID))
 }

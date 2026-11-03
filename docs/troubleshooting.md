@@ -59,37 +59,34 @@ write by default, copy the block there.
 By design — capture must never disturb the agent. Errors go to
 `.shale/local/capture.log`, so look there first when events seem to vanish.
 
-## Finalize and push
+## Evidence and commits
 
 ### Evidence isn't on the PR even though the session ran
 
-The pre-push hook creates the evidence commit **during** the push, so that
-commit stays local until the next push:
+Evidence rides your own commits: `shale done` stages it, and the pre-commit
+hook adds the record of any task closed since the last commit. A task still
+in progress when you commit is recorded with a later commit, after its
+`shale done` (or when the agent's session ends). The pre-push hook names
+each session the push does not carry yet. Commit once the task is done, or
+run `shale finalize --auto-commit` to commit the evidence on its own.
+
+### Pre-commit hook didn't install
+
+`shale init` adds one line to an existing pre-commit hook (Stele's, a
+linter's), right after the shebang, so both run:
 
 ```sh
-git push        # once more — the evidence commit goes up
+{ command -v shale >/dev/null 2>&1 && shale precommit; } || true # shale (shale init)
 ```
 
-If you amended or rebased instead, just push again; finalize is idempotent.
-
-### Pre-push hook didn't install
-
-An existing non-Shale `pre-push` hook is never clobbered. Add this line to
-your hook yourself:
-
-```sh
-shale finalize --auto-commit || echo "shale: finalize failed (push continues)" >&2
-```
-
-**Using a hook manager?** `shale init` honors `core.hooksPath`, so the hook
+**Using a hook manager?** `shale init` honors `core.hooksPath`, so the line
 lands where git will actually run it — on a husky repo that's
-`.husky/pre-push` (a committed file: `git add` it so teammates get it too).
-If the manager already owns that hook file, chain Shale in instead:
+`.husky/pre-commit` (a committed file: `git add` it so teammates get it
+too). Otherwise chain Shale in yourself:
 
-- **husky** — append the line above to `.husky/pre-push`
-- **lefthook** — add a `pre-push` job running `shale finalize --auto-commit`
-  to `lefthook.yml`
-- **pre-commit** — add a `repo: local` hook with `stages: [pre-push]`
+- **lefthook** — add a `pre-commit` job running `shale precommit` to
+  `lefthook.yml`
+- **pre-commit** — add a `repo: local` hook running `shale precommit`
 
 `shale doctor` reports the exact hook location it checked.
 
@@ -108,11 +105,11 @@ agent works in the same checkout, and even before its hooks are trusted.
 Agents that pass no id use `.shale/local/current`, which names the session
 whose hook ran last: run one of those at a time per checkout.
 
-`shale done` finalizes and commits only the calling agent's session. The
-pre-push hook (`shale finalize --auto-commit`) is the safety net for every
-session still open in the checkout, so a push can carry another agent's
-evidence: it lists each file it commits, with the agent and the request,
-before the push. A session that left only ambient capture (commands,
+`shale done` finalizes only the calling agent's session and stages it for
+your commit. The pre-commit hook records every task closed since the last
+commit, another agent's included, and lists each file with the agent and the
+request; a task still in progress waits for a later commit. The pre-push
+hook never commits. A session that left only ambient capture (commands,
 prompts, files outside the repository) writes no file at all. In a public
 repository where agents also do unrelated work, give that work its own
 checkout.

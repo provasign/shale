@@ -20,7 +20,7 @@
     "beforeSubmitPrompt": { "action": "prompt" },
     "afterFileEdit": { "action": "file_touch", "op": "edit" },
     "postToolUse": { "action": "tool_use" },
-    "sessionEnd": { "action": "session_end" }
+    "sessionEnd": { "action": "session_close" }
   },
   "tools": {
     "Write": { "action": "file_touch", "op": "write" },

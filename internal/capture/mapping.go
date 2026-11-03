@@ -51,7 +51,7 @@ type inputMap struct {
 
 // actionSpec is what to do for one event name or one tool name.
 type actionSpec struct {
-	Action  string `json:"action"`            // session_meta|prompt|file_touch|command|session_end|tool_use|structural
+	Action  string `json:"action"`            // session_meta|prompt|file_touch|command|session_end|session_close|tool_use|structural
 	Op      string `json:"op,omitempty"`      // write|edit|delete, for file_touch
 	Handler string `json:"handler,omitempty"` // structuralHandlers key, for action=structural
 }
@@ -126,6 +126,8 @@ func applyMapping(m *Mapping, raw []byte, now time.Time) (events []store.Event, 
 		}
 	case "session_end":
 		events = append(events, store.Event{Kind: store.KindSessionEnd, At: at})
+	case "session_close":
+		events = append(events, store.Event{Kind: store.KindSessionClose, At: at})
 	case "tool_use":
 		events = append(events, applyTool(top, m, at)...)
 	}

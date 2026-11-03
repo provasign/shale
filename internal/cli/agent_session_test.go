@@ -2,9 +2,11 @@ package cli
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/provasign/shale/internal/store"
 )
@@ -88,5 +90,40 @@ func TestDoneFinalizesOnlyItsOwnSession(t *testing.T) {
 	}
 	if _, err := os.Stat(store.SessionPath(root, "claude-1")); err != nil {
 		t.Fatalf("the other agent's log was taken: %v", err)
+	}
+}
+
+// A commit carries the evidence of the tasks closed before it: the
+// pre-commit hook stages it, so no commit or push of its own is needed.
+func TestCommitCarriesClosedTaskEvidence(t *testing.T) {
+	root := chrepo(t)
+	run(t, "", "init")
+	t.Setenv("CLAUDE_CODE_SESSION_ID", "claude-1")
+	run(t, "", "intent", "Add rate limiting")
+	os.WriteFile(filepath.Join(root, "limit.go"), []byte("package p\n"), 0o644)
+	// done cannot stage here (as when another tool holds the index), so the
+	// hook has to: simulate by recording the completion without finalizing.
+	if err := store.AppendEvent(root, "claude-1", store.Event{Kind: store.KindCompletion, At: time.Now().UTC(), Note: "limited"}); err != nil {
+		t.Fatal(err)
+	}
+	git := func(args ...string) string {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = root
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			t.Fatalf("git %v: %v %s", args, err, out)
+		}
+		return string(out)
+	}
+	git("add", "limit.go")
+	// The hook is a script calling the shale binary; run its command as the
+	// hook would, then commit.
+	if code, _, errOut := run(t, "", "precommit"); code != 0 || !strings.Contains(errOut, "carries the evidence of 1 task") {
+		t.Fatalf("precommit: %d %q", code, errOut)
+	}
+	git("commit", "-qm", "rate limiting", "--no-verify")
+	files := git("show", "--name-only", "--format=", "HEAD")
+	if !strings.Contains(files, "limit.go") || !strings.Contains(files, ".shale/claude-1.yaml") {
+		t.Fatalf("the commit has %q; want the code and its evidence together", files)
 	}
 }

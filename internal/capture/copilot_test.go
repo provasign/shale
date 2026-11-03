@@ -59,7 +59,7 @@ func TestParseCopilotBashCommand(t *testing.T) {
 
 func TestParseCopilotSessionEnd(t *testing.T) {
 	events, _, _ := ParseCopilot(copilotFixture(t, "session_end.json"), now)
-	if len(events) != 1 || events[0].Kind != store.KindSessionEnd {
+	if len(events) != 1 || events[0].Kind != store.KindSessionClose {
 		t.Fatalf("events = %+v", events)
 	}
 }

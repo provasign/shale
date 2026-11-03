@@ -100,24 +100,30 @@ func cmdDone(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	// Finalize-on-done, gated on the committed scaffold marker (not the bare
-	// .shale/ dir — our own AppendEvent above just created that). Fail-open:
-	// any problem falls back to the pre-push hook path and must not fail the
-	// done.
-	committed := false
+	// .shale/ dir — our own AppendEvent above just created that). The
+	// evidence goes into the user's own commit: it is staged, and the code
+	// commit that follows carries it. Only when the code is committed
+	// already, so no commit of the user's is coming, does it get a commit of
+	// its own, still before the push. Fail-open: any problem falls back to
+	// the pre-commit hook and must not fail the done.
 	if _, statErr := os.Stat(filepath.Join(root, ".shale", "schema-version")); statErr == nil {
 		// Only this agent's session: the others open in the checkout are
 		// their agents' to finalize, and committing them here published
 		// another agent's work (2026-11-03).
-		res, ferr := fold.Run(fold.Options{RepoRoot: root, Privacy: initx.LoadConfig(root).Privacy, Sessions: []string{sessionID}})
+		res, ferr := fold.Run(fold.Options{RepoRoot: root, Privacy: initx.LoadConfig(root).Privacy, Sessions: []string{sessionID}, ClosedOnly: true})
 		if ferr == nil && len(res.Written) > 0 {
-			committed, _ = gitx.AutoCommit(root, res.Written, "chore(shale): session evidence")
+			if gitx.OnlyEvidencePending(root) {
+				if committed, _ := gitx.AutoCommit(root, res.Written, "chore(shale): session evidence"); committed {
+					fmt.Fprintf(stdout, "✓ completion recorded (session %s) — the code was already committed, so the evidence got its own commit; it publishes with your push\n", short(sessionID))
+					return 0
+				}
+			} else if gitx.Stage(root, res.Written) == nil {
+				fmt.Fprintf(stdout, "✓ completion recorded (session %s) — evidence staged; commit it with your code\n", short(sessionID))
+				return 0
+			}
 		}
 	}
-	if committed {
-		fmt.Fprintf(stdout, "✓ completion recorded (session %s) — evidence committed; publishes with your push\n", short(sessionID))
-		return 0
-	}
-	fmt.Fprintf(stdout, "✓ completion recorded (session %s) — finalize runs on push\n", short(sessionID))
+	fmt.Fprintf(stdout, "✓ completion recorded (session %s) — the pre-commit hook adds its evidence to your next commit\n", short(sessionID))
 	// The one silent-failure mode worth breaking the single-line ack for:
 	// evidence wasn't committed here, and a pre-push hook that never runs
 	// finalize means it will publish nowhere. `done` is the last moment an

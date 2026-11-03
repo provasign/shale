@@ -39,6 +39,10 @@ type Options struct {
 	// Sessions, when set, are the only sessions folded: shale done folds
 	// its own agent's session, never the others open in the checkout.
 	Sessions []string
+	// ClosedOnly folds only the tasks that are closed (shale done, or the
+	// agent's session ended), for a commit to carry their evidence; a task
+	// still in progress stays in the log, to be folded once closed.
+	ClosedOnly bool
 }
 
 // Result reports what a finalize run produced.
@@ -72,7 +76,7 @@ func Run(opts Options) (Result, error) {
 		if len(opts.Sessions) > 0 && !contains(opts.Sessions, id) {
 			continue
 		}
-		written, err := foldSession(opts, id)
+		written, rest, err := foldSession(opts, id)
 		if err != nil {
 			// Fail-open per session: one bad session must not block the push
 			// or the other sessions.
@@ -84,8 +88,15 @@ func Run(opts Options) (Result, error) {
 		} else {
 			res.Written = append(res.Written, written...)
 		}
-		if err := store.ArchiveSession(opts.RepoRoot, id); err != nil {
-			fmt.Fprintf(os.Stderr, "shale finalize: archive %s: %v\n", id, err)
+		var aerr error
+		switch {
+		case rest == nil:
+			aerr = store.ArchiveSession(opts.RepoRoot, id)
+		case len(rest.folded) > 0:
+			aerr = store.ArchivePart(opts.RepoRoot, id, rest.folded, rest.open)
+		}
+		if aerr != nil {
+			fmt.Fprintf(os.Stderr, "shale finalize: archive %s: %v\n", id, aerr)
 		}
 	}
 	return res, nil
@@ -100,13 +111,26 @@ func Run(opts Options) (Result, error) {
 // (a developer trial, 2026-11-03). Returns nil paths when the session was
 // already finalized and the remnant log carries no task evidence
 // (idempotent skip).
-func foldSession(opts Options, sessionID string) ([]string, error) {
+func foldSession(opts Options, sessionID string) ([]string, *remainder, error) {
 	events, err := store.ReadEvents(store.SessionPath(opts.RepoRoot, sessionID))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	if len(events) == 0 {
-		return nil, fmt.Errorf("no events")
+		return nil, nil, fmt.Errorf("no events")
+	}
+	var rest *remainder
+	if opts.ClosedOnly {
+		// Fold the closed tasks only; the one in progress stays open.
+		starts := taskStarts(events)
+		last := starts[len(starts)-1]
+		if !closesTask(events[last:]) {
+			rest = &remainder{folded: events[:last], open: withMeta(events, last)}
+			if last == 0 {
+				return []string{}, rest, nil // nothing closed yet
+			}
+			events = events[:last]
+		}
 	}
 	exists := func(id string) bool {
 		_, err := os.Stat(filepath.Join(opts.RepoRoot, ".shale", id+".yaml"))
@@ -116,7 +140,7 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 	if continuation && !hasTaskEvidence(opts.RepoRoot, events) {
 		// Already finalized — append-only, never rewrite (spec rule 2). Ambient
 		// capture alone (commands, prompts) is archived without minting a file.
-		return nil, nil
+		return nil, rest, nil
 	}
 	tasks := splitTasks(events)
 	written := []string{}
@@ -142,40 +166,76 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 		}
 		w, err := foldRecord(opts, id, task, note, until)
 		if err != nil {
-			return written, err
+			return written, nil, err
 		}
 		written = append(written, w...)
 	}
-	return written, nil
+	return written, rest, nil
 }
 
-// splitTasks cuts a session's events into tasks: after a completion, a
-// request declared later starts the next task, with the prompts and
-// commands that came between. A request declared again before the
-// completion restates the same task. Later tasks get the session's metadata.
-func splitTasks(events []store.Event) [][]store.Event {
-	var meta []store.Event
-	for _, ev := range events {
-		if ev.Kind == store.KindSessionMeta {
-			meta = append(meta, ev)
-		}
-	}
-	var tasks [][]store.Event
-	begin, closed := 0, -1
+// remainder is what a closed-only fold leaves: the events it folded, to
+// archive, and the open task's, which stay the log.
+type remainder struct{ folded, open []store.Event }
+
+// taskStarts are the indexes where the session's tasks begin: after a
+// closing event (a completion, or the session closing), a request declared
+// later starts the next task.
+func taskStarts(events []store.Event) []int {
+	starts := []int{0}
+	closed := -1
 	for i, ev := range events {
 		switch ev.Kind {
-		case store.KindCompletion:
+		case store.KindCompletion, store.KindSessionClose:
 			closed = i + 1
 		case store.KindIntent:
-			if closed > begin {
-				tasks = append(tasks, events[begin:closed])
-				begin, closed = closed, -1
+			if closed > starts[len(starts)-1] {
+				starts = append(starts, closed)
+				closed = -1
 			}
 		}
 	}
-	tasks = append(tasks, events[begin:])
-	for i := 1; i < len(tasks); i++ {
-		tasks[i] = append(append([]store.Event{}, meta...), tasks[i]...)
+	return starts
+}
+
+// closesTask reports whether a task's events close it.
+func closesTask(events []store.Event) bool {
+	for _, ev := range events {
+		if ev.Kind == store.KindCompletion || ev.Kind == store.KindSessionClose {
+			return true
+		}
+	}
+	return false
+}
+
+// withMeta is the events from start on, after the session's metadata when
+// start is not the beginning.
+func withMeta(events []store.Event, start int) []store.Event {
+	if start == 0 {
+		return events
+	}
+	var out []store.Event
+	for _, ev := range events[:start] {
+		if ev.Kind == store.KindSessionMeta {
+			out = append(out, ev)
+		}
+	}
+	return append(out, events[start:]...)
+}
+
+// splitTasks cuts a session's events into tasks (taskStarts): after a
+// closing event, a request declared later starts the next task, with the
+// prompts and commands that came between. A request declared again before
+// the completion restates the same task. Later tasks get the session's
+// metadata.
+func splitTasks(events []store.Event) [][]store.Event {
+	starts := taskStarts(events)
+	var tasks [][]store.Event
+	for i, start := range starts {
+		end := len(events)
+		if i+1 < len(starts) {
+			end = starts[i+1]
+		}
+		tasks = append(tasks, withMeta(events[:end], start))
 	}
 	return tasks
 }
@@ -292,6 +352,14 @@ func foldRecord(opts Options, evidenceID string, events []store.Event, note stri
 			cur.completedAt = ev.At.UTC()
 			if s.Agent.Model == "" {
 				s.Agent.Model = ev.Model
+			}
+
+		case store.KindSessionClose:
+			// The session ended for good with its task never reported
+			// done: the task is over, and says how it ended.
+			if cur.intent != nil && cur.completion == nil {
+				cur.completion = &store.Completion{Note: "the agent's session ended without shale done"}
+				cur.completedAt = ev.At.UTC()
 			}
 
 		case store.KindFileTouch:

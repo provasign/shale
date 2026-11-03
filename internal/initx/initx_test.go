@@ -335,7 +335,7 @@ func TestInstallPrePushHook(t *testing.T) {
 		t.Fatalf("skipped=%v err=%v", skipped, err)
 	}
 	raw, err := os.ReadFile(filepath.Join(root, ".git", "hooks", "pre-push"))
-	if err != nil || !strings.Contains(string(raw), "shale finalize --auto-commit") {
+	if err != nil || !strings.Contains(string(raw), "shale prepush") {
 		t.Fatalf("hook content: %s (%v)", raw, err)
 	}
 
@@ -380,7 +380,7 @@ func TestInstallPrePushHookHonorsHooksPath(t *testing.T) {
 		t.Fatal("hook written to .git/hooks despite core.hooksPath override")
 	}
 	raw, err := os.ReadFile(filepath.Join(root, ".husky", "pre-push"))
-	if err != nil || !strings.Contains(string(raw), "shale finalize --auto-commit") {
+	if err != nil || !strings.Contains(string(raw), "shale prepush") {
 		t.Fatalf("hook at core.hooksPath: %s (%v)", raw, err)
 	}
 
@@ -427,7 +427,7 @@ func TestInstallPrePushHookInLinkedWorktree(t *testing.T) {
 		t.Fatalf("worktree install: skipped=%v err=%v", skipped, err)
 	}
 	raw, err := os.ReadFile(filepath.Join(main, ".git", "hooks", "pre-push"))
-	if err != nil || !strings.Contains(string(raw), "shale finalize --auto-commit") {
+	if err != nil || !strings.Contains(string(raw), "shale prepush") {
 		t.Fatalf("hook not in main repo hooks dir: %s (%v)", raw, err)
 	}
 }
@@ -452,6 +452,7 @@ func TestDoctor(t *testing.T) {
 	InstallRepoHooks(root)
 	Scaffold(root, "redacted")
 	InstallPrePushHook(root)
+	InstallPreCommitHook(root)
 
 	results := map[string]bool{}
 	for _, c := range Doctor(root) {
@@ -460,7 +461,7 @@ func TestDoctor(t *testing.T) {
 	for _, name := range []string{
 		"steering prompt present", ".shale/ scaffold present",
 		"workflow file present", "workflow does NOT check out PR code",
-		"pre-push hook installed",
+		"pre-commit hook adds evidence to commits",
 		"Claude Code capture hooks installed (repo or global)",
 		"multi-agent repo hook configs present",
 	} {
@@ -539,5 +540,41 @@ func TestClaudeAllowlistInstallAndRemove(t *testing.T) {
 	changed, err = RemoveClaudeAllowlist(path)
 	if err != nil || changed {
 		t.Fatalf("re-remove: changed=%v err=%v", changed, err)
+	}
+}
+
+// The pre-commit hook is often another tool's (Stele installs one ending in
+// exec): Shale's line goes right after the shebang, so it runs first, and
+// once only. Shale's own earlier pre-push script is replaced as ours.
+func TestInstallPreCommitHookChainsAndPrePushUpgrades(t *testing.T) {
+	root := t.TempDir()
+	if out, err := exec.Command("git", "-C", root, "init", "-b", "main").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	hooks := filepath.Join(root, ".git", "hooks")
+	stele := "#!/bin/sh\n# Stele (stele init)\ncommand -v stele >/dev/null 2>&1 || exit 0\nexec stele precommit\n"
+	os.WriteFile(filepath.Join(hooks, "pre-commit"), []byte(stele), 0o755)
+	chained, err := InstallPreCommitHook(root)
+	if err != nil || !chained {
+		t.Fatalf("chained=%v err=%v", chained, err)
+	}
+	raw, _ := os.ReadFile(filepath.Join(hooks, "pre-commit"))
+	lines := strings.Split(string(raw), "\n")
+	if lines[0] != "#!/bin/sh" || !strings.Contains(lines[1], "shale precommit") || !strings.Contains(string(raw), "exec stele precommit") {
+		t.Fatalf("pre-commit hook:\n%s", raw)
+	}
+	if chained, _ = InstallPreCommitHook(root); chained {
+		t.Fatal("added twice")
+	}
+	if strings.Count(func() string { b, _ := os.ReadFile(filepath.Join(hooks, "pre-commit")); return string(b) }(), "shale precommit") != 1 {
+		t.Fatal("line duplicated")
+	}
+
+	os.WriteFile(filepath.Join(hooks, "pre-push"), []byte(oldPrePushScripts[0]), 0o755)
+	if skipped, err := InstallPrePushHook(root); err != nil || skipped {
+		t.Fatalf("old script not upgraded: skipped=%v err=%v", skipped, err)
+	}
+	if raw, _ := os.ReadFile(filepath.Join(hooks, "pre-push")); !strings.Contains(string(raw), "shale prepush") || strings.Contains(string(raw), "auto-commit") {
+		t.Fatalf("pre-push hook:\n%s", raw)
 	}
 }

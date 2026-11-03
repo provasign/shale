@@ -20,7 +20,7 @@
     "UserPromptSubmit": { "action": "prompt" },
     "PostToolUse": { "action": "tool_use" },
     "Stop": { "action": "session_end" },
-    "SessionEnd": { "action": "session_end" }
+    "SessionEnd": { "action": "session_close" }
   },
   "tools": {
     "Write": { "action": "file_touch", "op": "write" },

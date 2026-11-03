@@ -65,10 +65,13 @@ intent:
 
 completion:
   # Written by the AGENT via `shale done [--note "..."] [--tokens-in N ...]`
-  # AFTER the work is complete, before asking for review — done also folds
-  # and commits the evidence on the spot. Steered by the same block as
-  # intent. `shale finalize` (pre-push hook) is the mechanical safety net
-  # for sessions without a done.
+  # AFTER the work is complete, before it is committed — done also folds
+  # the evidence and stages it, so the user's commit carries it with the
+  # code (or commits it alone when the code is committed already). Steered
+  # by the same block as intent. The pre-commit hook (`shale precommit`)
+  # records any task closed since the last commit; the agent's session
+  # ending for good closes a task without a done. The pre-push hook never
+  # commits; it says which sessions a push does not carry yet.
   note: "Redis-backed rate limiter implemented. In-memory fallback added when Redis unavailable. 3 files changed, 12 tests added."
   model: "claude-fable-5"          # as reported by the agent at done-time
   tokens_in: 32000                 # prompt tokens for session
