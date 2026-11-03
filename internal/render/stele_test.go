@@ -69,7 +69,8 @@ func TestSteleCardStatuses(t *testing.T) {
 		"questions": "⏳ **Waiting for the owner**: 2 questions open",
 		"ready":     "⏳ **Waiting for the owner's approval**",
 		"clean":     "✅ **Nothing to decide**",
-		"broken":    "⚠️ **Stele could not check this change**",
+		"broken":    "⚠️ **Stele could not check this change**: its rules",
+		"failed":    "⚠️ **Stele could not check this change**: the model could not read",
 		"weird":     "⚠️ **Unknown Stele status** `weird`",
 	} {
 		var b strings.Builder

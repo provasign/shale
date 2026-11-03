@@ -21,7 +21,7 @@ type SteleCard struct {
 	Version      int    `json:"stele_card"`
 	Change       string `json:"change"`
 	Format       string `json:"format"`
-	Status       string `json:"status"` // approved | ready | questions | clean | broken
+	Status       string `json:"status"` // approved | ready | questions | clean | broken | failed
 	Checked      int    `json:"checked_against"`
 	Requirements []struct {
 		Title   string   `json:"title"`
@@ -142,6 +142,8 @@ func writeSteleStatus(b *strings.Builder, c *SteleCard) {
 		fmt.Fprintf(b, "> ⏳ **Waiting for the owner**: %d question%s open%s\n", c.Open, plural(c.Open), against)
 	case "broken":
 		fmt.Fprintf(b, "> ⚠️ **Stele could not check this change**: its rules do not compile together\n")
+	case "failed":
+		fmt.Fprintf(b, "> ⚠️ **Stele could not check this change**: the model could not read its requirements; nothing was checked\n")
 	default:
 		fmt.Fprintf(b, "> ⚠️ **Unknown Stele status** %s\n", code(Sanitize(c.Status)))
 	}
