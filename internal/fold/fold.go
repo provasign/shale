@@ -185,8 +185,12 @@ func taskStarts(events []store.Event) []int {
 	closed := -1
 	for i, ev := range events {
 		switch ev.Kind {
-		case store.KindCompletion, store.KindSessionClose:
+		case store.KindCompletion:
 			closed = i + 1
+		case store.KindSessionClose:
+			if !store.Resumed(events, i) {
+				closed = i + 1
+			}
 		case store.KindIntent:
 			if closed > starts[len(starts)-1] {
 				starts = append(starts, closed)
@@ -199,8 +203,8 @@ func taskStarts(events []store.Event) []int {
 
 // closesTask reports whether a task's events close it.
 func closesTask(events []store.Event) bool {
-	for _, ev := range events {
-		if ev.Kind == store.KindCompletion || ev.Kind == store.KindSessionClose {
+	for i, ev := range events {
+		if ev.Kind == store.KindCompletion || ev.Kind == store.KindSessionClose && !store.Resumed(events, i) {
 			return true
 		}
 	}
@@ -283,7 +287,7 @@ func foldRecord(opts Options, evidenceID string, events []store.Event, note stri
 	var cycles []taskCycle
 	var cur taskCycle
 
-	for _, ev := range events {
+	for i, ev := range events {
 		switch ev.Kind {
 		case store.KindSessionMeta:
 			if ev.Tool != "" {
@@ -357,7 +361,7 @@ func foldRecord(opts Options, evidenceID string, events []store.Event, note stri
 		case store.KindSessionClose:
 			// The session ended for good with its task never reported
 			// done: the task is over, and says how it ended.
-			if cur.intent != nil && cur.completion == nil {
+			if cur.intent != nil && cur.completion == nil && !store.Resumed(events, i) {
 				cur.completion = &store.Completion{Note: "the agent's session ended without shale done"}
 				cur.completedAt = ev.At.UTC()
 			}

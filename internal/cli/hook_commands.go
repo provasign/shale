@@ -57,12 +57,16 @@ func cmdPrepush(stderr io.Writer) int {
 		}
 		title, tool := "", "cli"
 		closed := false
-		for _, ev := range events {
+		for i, ev := range events {
 			switch ev.Kind {
 			case store.KindIntent:
 				title, closed = ev.Title, false
-			case store.KindCompletion, store.KindSessionClose:
+			case store.KindCompletion:
 				closed = true
+			case store.KindSessionClose:
+				if !store.Resumed(events, i) {
+					closed = true
+				}
 			case store.KindSessionMeta:
 				if ev.Tool != "" {
 					tool = ev.Tool

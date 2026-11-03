@@ -27,6 +27,21 @@ const (
 	KindNote         = "note"       // from `shale note`
 )
 
+// Resumed reports whether the session went on after events[i]. Claude Code
+// fires SessionEnd when a conversation exits, and --resume or --continue
+// brings the same session back (each turn of `claude -p --resume` is one):
+// a close followed by more of the session's events ended nothing. Treated
+// as an end, it closed the request, and the resumed work's shale done
+// became a second task with no request (a developer trial, 2026-11-03).
+func Resumed(events []Event, i int) bool {
+	for _, ev := range events[i+1:] {
+		if ev.Kind != KindSessionEnd && ev.Kind != KindSessionClose {
+			return true
+		}
+	}
+	return false
+}
+
 // Event is one line of the session JSONL. Fields are a union across kinds.
 type Event struct {
 	Kind string    `json:"kind"`

@@ -631,3 +631,43 @@ func TestRunClosedOnlyKeepsTheOpenTask(t *testing.T) {
 		t.Fatalf("record = %+v / %+v / %q", s.Intent, s.Completion, s.Agent.Tool)
 	}
 }
+
+// A conversation that exits and is resumed (claude --resume, or each turn
+// of claude -p --resume) closes and reopens the same session: the close
+// ended nothing. The request declared before it is the task the resumed
+// work completes, and one declared again after it restates that request.
+func TestRunResumedSessionKeepsItsRequest(t *testing.T) {
+	root := initRepo(t)
+	for _, ev := range []store.Event{
+		{Kind: store.KindSessionMeta, At: t0, Tool: "claude-code"},
+		{Kind: store.KindIntent, At: t0.Add(time.Minute), Title: "Limit loans to 3"},
+		{Kind: store.KindSessionEnd, At: t0.Add(2 * time.Minute)},
+		{Kind: store.KindSessionClose, At: t0.Add(2 * time.Minute)},
+		{Kind: store.KindSessionMeta, At: t0.Add(3 * time.Minute), Tool: "claude-code"},
+		{Kind: store.KindIntent, At: t0.Add(4 * time.Minute), Title: "Limit loans to 3 at a time"},
+		{Kind: store.KindSessionClose, At: t0.Add(5 * time.Minute)},
+		{Kind: store.KindSessionMeta, At: t0.Add(6 * time.Minute), Tool: "claude-code"},
+		{Kind: store.KindFileTouch, At: t0.Add(7 * time.Minute), Path: filepath.Join(root, "lend.go"), Op: "edit"},
+		{Kind: store.KindCompletion, At: t0.Add(8 * time.Minute), Note: "limit built"},
+	} {
+		if err := store.AppendEvent(root, "SESSRESUME1", ev); err != nil {
+			t.Fatal(err)
+		}
+	}
+	res, err := Run(Options{RepoRoot: root, Now: now, ClosedOnly: true})
+	if err != nil || len(res.Written) != 1 || !strings.HasSuffix(res.Written[0], "SESSRESUME1.yaml") {
+		t.Fatalf("written %v, %v; want one record", res.Written, err)
+	}
+	s, _ := store.Load(filepath.Join(root, res.Written[0]))
+	if s.Intent == nil || s.Intent.Title != "Limit loans to 3 at a time" || s.Completion == nil || s.Completion.Note != "limit built" || len(s.Files) != 1 {
+		t.Fatalf("record = %+v / %+v / %v", s.Intent, s.Completion, s.Files)
+	}
+}
+
+// The last close, with nothing after it, still ends the session.
+func TestResumed(t *testing.T) {
+	evs := []store.Event{{Kind: store.KindIntent}, {Kind: store.KindSessionClose}, {Kind: store.KindSessionMeta}, {Kind: store.KindSessionEnd}, {Kind: store.KindSessionClose}}
+	if !store.Resumed(evs, 1) || store.Resumed(evs, 4) {
+		t.Fatalf("Resumed = %v, %v; want true, false", store.Resumed(evs, 1), store.Resumed(evs, 4))
+	}
+}
