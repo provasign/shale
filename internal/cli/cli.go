@@ -50,9 +50,9 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	case "finalize":
 		return cmdFinalize(args[1:], stdout, stderr)
 	case "precommit":
-		return cmdPrecommit(args[1:], stdout, stderr)
+		return cmdPrecommit(stderr)
 	case "prepush":
-		return cmdPrepush(args[1:], stdout, stderr)
+		return cmdPrepush(stderr)
 	case "render":
 		return cmdRender(args[1:], stdout, stderr)
 	case "note":

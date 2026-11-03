@@ -17,7 +17,7 @@ import (
 // their evidence, so the commit being made carries it alongside the code. A
 // task still in progress stays open, to be recorded with a later commit. It
 // never blocks the commit.
-func cmdPrecommit(args []string, stdout, stderr io.Writer) int {
+func cmdPrecommit(stderr io.Writer) int {
 	root := repoRoot()
 	if _, err := os.Stat(filepath.Join(root, ".shale", "schema-version")); err != nil {
 		return 0 // not opted in
@@ -44,7 +44,7 @@ func cmdPrecommit(args []string, stdout, stderr io.Writer) int {
 // cmdPrepush is the git pre-push hook. It never commits, so nothing is
 // created while the push is in flight, and it never blocks: it says which
 // sessions' evidence this push does not carry yet.
-func cmdPrepush(args []string, stdout, stderr io.Writer) int {
+func cmdPrepush(stderr io.Writer) int {
 	root := repoRoot()
 	ids, err := store.ListSessions(root)
 	if err != nil {
