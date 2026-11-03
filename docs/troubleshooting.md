@@ -99,6 +99,15 @@ Already-finalized sessions are archived and skipped — that's idempotency, not
 data loss. Active session events live in `.shale/local/`, archives in
 `.shale/local/archive/`.
 
+### Two agents in one repository
+
+Claude Code and Codex pass their session id to the commands they run
+(`CLAUDE_CODE_SESSION_ID`, `CODEX_THREAD_ID`), so `shale intent`, `shale done`
+and `shale note` land in the calling agent's own session even while another
+agent works in the same checkout, and even before its hooks are trusted.
+Agents that pass no id use `.shale/local/current`, which names the session
+whose hook ran last: run one of those at a time per checkout.
+
 ## The card
 
 ### No card appears on the PR

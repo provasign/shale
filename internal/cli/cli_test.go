@@ -16,6 +16,10 @@ import (
 // chrepo creates a temp git repo, chdirs into it, and isolates HOME.
 func chrepo(t *testing.T) string {
 	t.Helper()
+	// Tests run inside coding agents too: their session ids must not leak in.
+	for _, e := range sessionEnv {
+		t.Setenv(e.name, "")
+	}
 	root := t.TempDir()
 	for _, args := range [][]string{
 		{"init", "-b", "main"},

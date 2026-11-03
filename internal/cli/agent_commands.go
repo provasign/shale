@@ -52,14 +52,10 @@ func cmdIntent(args []string, stdout, stderr io.Writer) int {
 	}
 
 	root := repoRoot()
-	sessionID := store.CurrentSession(root)
-	if sessionID == "" {
-		// CLI-only session (no hook adapter ran): open one ourselves.
-		sessionID = store.NewULID(time.Now())
-		if err := store.SetCurrentSession(root, sessionID); err != nil {
-			fmt.Fprintln(stderr, "shale intent:", err)
-			return 1
-		}
+	sessionID, err := agentSession(root)
+	if err != nil {
+		fmt.Fprintln(stderr, "shale intent:", err)
+		return 1
 	}
 	ev := store.Event{Kind: store.KindIntent, At: nowUTC(), Title: title, Body: *body}
 	if err := store.AppendEvent(root, sessionID, ev); err != nil {
@@ -89,15 +85,10 @@ func cmdDone(args []string, stdout, stderr io.Writer) int {
 	}
 
 	root := repoRoot()
-	sessionID := store.CurrentSession(root)
-	if sessionID == "" {
-		// done without intent: still record it — absence of intent will be
-		// explicit on the card, but the completion evidence is real.
-		sessionID = store.NewULID(time.Now())
-		if err := store.SetCurrentSession(root, sessionID); err != nil {
-			fmt.Fprintln(stderr, "shale done:", err)
-			return 1
-		}
+	sessionID, err := agentSession(root)
+	if err != nil {
+		fmt.Fprintln(stderr, "shale done:", err)
+		return 1
 	}
 	ev := store.Event{
 		Kind: store.KindCompletion, At: nowUTC(),
@@ -142,13 +133,10 @@ func cmdNote(args []string, stdout, stderr io.Writer) int {
 		return 1
 	}
 	root := repoRoot()
-	sessionID := store.CurrentSession(root)
-	if sessionID == "" {
-		sessionID = store.NewULID(time.Now())
-		if err := store.SetCurrentSession(root, sessionID); err != nil {
-			fmt.Fprintln(stderr, "shale note:", err)
-			return 1
-		}
+	sessionID, err := agentSession(root)
+	if err != nil {
+		fmt.Fprintln(stderr, "shale note:", err)
+		return 1
 	}
 	if err := store.AppendEvent(root, sessionID, store.Event{Kind: store.KindNote, At: nowUTC(), Text: text}); err != nil {
 		fmt.Fprintln(stderr, "shale note:", err)
@@ -156,6 +144,42 @@ func cmdNote(args []string, stdout, stderr io.Writer) int {
 	}
 	fmt.Fprintln(stdout, "✓ note recorded")
 	return 0
+}
+
+// sessionEnv names, per coding agent, the variable that carries its session
+// id into the commands it runs: the same id its hooks report, so a CLI call
+// lands in the session its hooks capture.
+var sessionEnv = []struct{ name, tool string }{
+	{"CLAUDE_CODE_SESSION_ID", "claude-code"},
+	{"CODEX_THREAD_ID", "codex"},
+}
+
+// agentSession is the session a CLI call (intent, done, note) belongs to.
+// The calling agent's own session id comes first: several agents can work
+// in one repository at once, and .shale/local/current names only the one
+// whose hook ran last. An agent that exposes no id falls back to that
+// pointer, and with no pointer either a session is opened here.
+func agentSession(root string) (string, error) {
+	for _, e := range sessionEnv {
+		id := strings.TrimSpace(os.Getenv(e.name))
+		if id == "" || strings.ContainsAny(id, `/\`) || strings.Contains(id, "..") {
+			continue
+		}
+		if _, err := os.Stat(store.SessionPath(root, id)); os.IsNotExist(err) {
+			// The agent's hooks have not run here (not installed, or not
+			// trusted yet): say which tool the session is.
+			if err := store.AppendEvent(root, id, store.Event{Kind: store.KindSessionMeta, At: nowUTC(), Tool: e.tool}); err != nil {
+				return "", err
+			}
+		}
+		return id, nil
+	}
+	if id := store.CurrentSession(root); id != "" {
+		return id, nil
+	}
+	// CLI-only session (no hook adapter ran): open one ourselves.
+	id := store.NewULID(time.Now())
+	return id, store.SetCurrentSession(root, id)
 }
 
 func short(id string) string {
