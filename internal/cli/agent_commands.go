@@ -105,7 +105,10 @@ func cmdDone(args []string, stdout, stderr io.Writer) int {
 	// done.
 	committed := false
 	if _, statErr := os.Stat(filepath.Join(root, ".shale", "schema-version")); statErr == nil {
-		res, ferr := fold.Run(fold.Options{RepoRoot: root, Privacy: initx.LoadConfig(root).Privacy})
+		// Only this agent's session: the others open in the checkout are
+		// their agents' to finalize, and committing them here published
+		// another agent's work (2026-11-03).
+		res, ferr := fold.Run(fold.Options{RepoRoot: root, Privacy: initx.LoadConfig(root).Privacy, Sessions: []string{sessionID}})
 		if ferr == nil && len(res.Written) > 0 {
 			committed, _ = gitx.AutoCommit(root, res.Written, "chore(shale): session evidence")
 		}

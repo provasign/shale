@@ -1,6 +1,8 @@
 package cli
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -55,5 +57,36 @@ func TestAgentSessionRejectsPaths(t *testing.T) {
 	id, err := agentSession(root)
 	if err != nil || strings.Contains(id, "/") || strings.Contains(id, "..") {
 		t.Fatalf("id = %q, %v", id, err)
+	}
+}
+
+// shale done finalizes the calling agent's session only: another agent's
+// open session in the same checkout is not committed with it.
+func TestDoneFinalizesOnlyItsOwnSession(t *testing.T) {
+	root := chrepo(t)
+	if err := os.MkdirAll(filepath.Join(root, ".shale"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(root, ".shale", "schema-version"), []byte("0\n"), 0o644)
+	t.Setenv("CLAUDE_CODE_SESSION_ID", "claude-1")
+	if code, _, errOut := run(t, "", "intent", "Fix the importer"); code != 0 {
+		t.Fatalf("claude intent: %s", errOut)
+	}
+	t.Setenv("CLAUDE_CODE_SESSION_ID", "")
+	t.Setenv("CODEX_THREAD_ID", "codex-1")
+	if code, _, errOut := run(t, "", "intent", "Run the trial"); code != 0 {
+		t.Fatalf("codex intent: %s", errOut)
+	}
+	if code, _, errOut := run(t, "", "done", "--note", "trial step"); code != 0 {
+		t.Fatalf("codex done: %s", errOut)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".shale", "codex-1.yaml")); err != nil {
+		t.Fatalf("the calling agent's session was not finalized: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".shale", "claude-1.yaml")); err == nil {
+		t.Fatal("done finalized another agent's session")
+	}
+	if _, err := os.Stat(store.SessionPath(root, "claude-1")); err != nil {
+		t.Fatalf("the other agent's log was taken: %v", err)
 	}
 }

@@ -108,6 +108,15 @@ agent works in the same checkout, and even before its hooks are trusted.
 Agents that pass no id use `.shale/local/current`, which names the session
 whose hook ran last: run one of those at a time per checkout.
 
+`shale done` finalizes and commits only the calling agent's session. The
+pre-push hook (`shale finalize --auto-commit`) is the safety net for every
+session still open in the checkout, so a push can carry another agent's
+evidence: it lists each file it commits, with the agent and the request,
+before the push. A session that left only ambient capture (commands,
+prompts, files outside the repository) writes no file at all. In a public
+repository where agents also do unrelated work, give that work its own
+checkout.
+
 ## The card
 
 ### No card appears on the PR

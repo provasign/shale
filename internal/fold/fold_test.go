@@ -531,3 +531,62 @@ func TestNormalizePathRejectsOutsideRepo(t *testing.T) {
 		t.Fatalf("got %q", got)
 	}
 }
+
+// Ambient capture alone (commands, prompts, files outside the repository)
+// is no evidence of work here: no file is written, so none is published,
+// and the events stay in the local archive.
+func TestRunWritesNoRecordOfAmbientCapture(t *testing.T) {
+	root := initRepo(t)
+	for _, ev := range []store.Event{
+		{Kind: store.KindCommand, At: t0, Cmd: "gh release view --repo provasign/shale"},
+		{Kind: store.KindPrompt, At: t0.Add(time.Second), Text: "check the trial"},
+		{Kind: store.KindFileTouch, At: t0.Add(2 * time.Second), Path: "/private/tmp/elsewhere/app.py", Op: "edit"},
+	} {
+		if err := store.AppendEvent(root, "SESSAMBIENT01", ev); err != nil {
+			t.Fatal(err)
+		}
+	}
+	res, err := Run(Options{RepoRoot: root, Now: now})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Written) != 0 {
+		t.Fatalf("written = %v, want nothing", res.Written)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".shale", "local", "archive", "SESSAMBIENT01.jsonl")); err != nil {
+		t.Fatalf("events not kept in the archive: %v", err)
+	}
+
+	// After a finalized session, a remnant touching only files elsewhere
+	// mints no continuation either.
+	seedFullSession(t, root, "SESSDONE01")
+	if _, err := Run(Options{RepoRoot: root, Now: now}); err != nil {
+		t.Fatal(err)
+	}
+	if err := store.AppendEvent(root, "SESSDONE01", store.Event{Kind: store.KindFileTouch, At: now.Add(time.Minute), Path: "/private/tmp/elsewhere/b.py", Op: "edit"}); err != nil {
+		t.Fatal(err)
+	}
+	if res, err = Run(Options{RepoRoot: root, Now: now.Add(2 * time.Minute)}); err != nil || len(res.Written) != 0 {
+		t.Fatalf("remnant: written %v, %v", res.Written, err)
+	}
+}
+
+// Sessions limits a run to the named sessions; the others stay open.
+func TestRunFoldsOnlyTheNamedSessions(t *testing.T) {
+	root := initRepo(t)
+	for _, id := range []string{"SESSMINE01", "SESSOTHER01"} {
+		if err := store.AppendEvent(root, id, store.Event{Kind: store.KindIntent, At: t0, Title: "work of " + id}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	res, err := Run(Options{RepoRoot: root, Now: now, Sessions: []string{"SESSMINE01"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(res.Written) != 1 || !strings.Contains(res.Written[0], "SESSMINE01") {
+		t.Fatalf("written = %v, want SESSMINE01 only", res.Written)
+	}
+	if _, err := os.Stat(store.SessionPath(root, "SESSOTHER01")); err != nil {
+		t.Fatalf("the other session's log was taken: %v", err)
+	}
+}

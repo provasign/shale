@@ -36,6 +36,9 @@ type Options struct {
 	RepoRoot string
 	Privacy  string    // full | redacted | hash-only (default redacted)
 	Now      time.Time // injection point for tests; zero = time.Now
+	// Sessions, when set, are the only sessions folded: shale done folds
+	// its own agent's session, never the others open in the checkout.
+	Sessions []string
 }
 
 // Result reports what a finalize run produced.
@@ -66,6 +69,9 @@ func Run(opts Options) (Result, error) {
 		return res, err
 	}
 	for _, id := range ids {
+		if len(opts.Sessions) > 0 && !contains(opts.Sessions, id) {
+			continue
+		}
 		written, err := foldSession(opts, id)
 		if err != nil {
 			// Fail-open per session: one bad session must not block the push
@@ -107,7 +113,7 @@ func foldSession(opts Options, sessionID string) ([]string, error) {
 		return err == nil
 	}
 	continuation := exists(sessionID)
-	if continuation && !hasTaskEvidence(events) {
+	if continuation && !hasTaskEvidence(opts.RepoRoot, events) {
 		// Already finalized — append-only, never rewrite (spec rule 2). Ambient
 		// capture alone (commands, prompts) is archived without minting a file.
 		return nil, nil
@@ -201,6 +207,7 @@ func foldRecord(opts Options, evidenceID string, events []store.Event, note stri
 
 	var prompts []store.Event
 	var redactions int
+	ownNotes := 0 // notes from shale note, as opposed to the ones folding writes
 	touches := map[string]*store.FileTouch{}
 	var touchOrder []string
 
@@ -319,6 +326,7 @@ func foldRecord(opts Options, evidenceID string, events []store.Event, note stri
 			prompts = append(prompts, ev)
 
 		case store.KindNote:
+			ownNotes++
 			text, r := eng.Apply(ev.Text)
 			redactions += r
 			s.Notes = append(s.Notes, store.Note{Text: text, At: ev.At.UTC()})
@@ -415,6 +423,16 @@ func foldRecord(opts Options, evidenceID string, events []store.Event, note stri
 		written = append(written, transcriptRel)
 	}
 
+	// A record of nothing but ambient capture (commands, prompts) says
+	// nothing about work in this repository: no request, no completion, no
+	// file here, no note. It is not written, so it is never published: an
+	// agent working elsewhere from this checkout (a trial in another
+	// folder) had its commands committed and pushed with someone else's
+	// work (2026-11-03). Its events stay in the local archive.
+	if s.Intent == nil && s.Completion == nil && len(s.Files) == 0 && ownNotes == 0 {
+		return nil, nil
+	}
+
 	s.Redactions = redactions
 	if s.Agent.Tool == "" {
 		// Honest provenance (spec rule 4): a session with no session_meta is
@@ -432,11 +450,16 @@ func foldRecord(opts Options, evidenceID string, events []store.Event, note stri
 // continuation evidence file: an agent-declared intent or completion, a file
 // touch, or a manual note. Ambient capture (commands, prompts, session
 // markers) alone does not.
-func hasTaskEvidence(events []store.Event) bool {
+func hasTaskEvidence(repoRoot string, events []store.Event) bool {
 	for _, ev := range events {
 		switch ev.Kind {
-		case store.KindIntent, store.KindCompletion, store.KindFileTouch, store.KindNote:
+		case store.KindIntent, store.KindCompletion, store.KindNote:
 			return true
+		case store.KindFileTouch:
+			// A file outside this repository is no work done here.
+			if normalizePath(repoRoot, ev.Path) != "" {
+				return true
+			}
 		}
 	}
 	return false

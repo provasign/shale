@@ -3,7 +3,9 @@ package cli
 import (
 	"flag"
 	"fmt"
+	"github.com/provasign/shale/internal/store"
 	"io"
+	"path/filepath"
 
 	"github.com/provasign/shale/internal/fold"
 	"github.com/provasign/shale/internal/gitx"
@@ -33,6 +35,11 @@ func cmdFinalize(args []string, stdout, stderr io.Writer) int {
 		return 0
 	}
 	fmt.Fprintf(stdout, "shale: finalized %d file(s)\n", len(res.Written))
+	// Say whose evidence this is before it is committed: a push publishes
+	// every agent's sessions folded here, not only the pusher's.
+	for _, p := range res.Written {
+		fmt.Fprintf(stdout, "  %s  %s\n", p, describeRecord(filepath.Join(root, p)))
+	}
 	if *autoCommit {
 		committed, err := gitx.AutoCommit(root, res.Written, "chore(shale): session evidence")
 		if err != nil {
@@ -51,4 +58,22 @@ func cmdFinalize(args []string, stdout, stderr io.Writer) int {
 		}
 	}
 	return 0
+}
+
+// describeRecord names an evidence file's agent and request, for the list
+// finalize prints.
+func describeRecord(path string) string {
+	s, err := store.Load(path)
+	if err != nil {
+		return ""
+	}
+	tool := s.Agent.Tool
+	if tool == "" {
+		tool = "cli"
+	}
+	what := "no request declared"
+	if s.Intent != nil && s.Intent.Title != "" {
+		what = fmt.Sprintf("%q", s.Intent.Title)
+	}
+	return tool + " · " + what
 }
