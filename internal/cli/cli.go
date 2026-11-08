@@ -16,7 +16,7 @@ const usage = `shale — agent PR evidence (https://github.com/provasign/shale)
 
 Usage:
   shale init                     set up this repo (steering prompt, hooks, workflow)
-  shale intent "<title>" [--body "..."]
+  shale intent "<title>" [--body "..."] [--for <spec change>]
                                  agent-called BEFORE the first file edit
   shale done [--note "..."] [--tokens-in N] [--tokens-out N]
              [--model M] [--iterations N]

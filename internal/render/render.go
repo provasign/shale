@@ -78,7 +78,7 @@ func Card(in Input) string {
 	writeHookValidationNotes(&b, in.Shales)
 	writeIntents(&b, in.Shales, in.BlobBase)
 	writeCompletions(&b, in.Shales)
-	writeStele(&b, in.Stele)
+	writeStele(&b, in.Stele, in.Shales)
 	writeFiles(&b, in)
 	writeChecks(&b, in.Shales)
 	return b.String()
@@ -227,6 +227,9 @@ func writeIntents(b *strings.Builder, shales []*store.Shale, blobBase string) {
 			for _, line := range strings.Split(strings.TrimRight(s.Intent.Body, "\n"), "\n") {
 				fmt.Fprintf(b, "> %s\n", Sanitize(line))
 			}
+		}
+		if s.Intent.For != "" {
+			fmt.Fprintf(b, ">\n> Implements spec change `%s`\n", Sanitize(s.Intent.For))
 		}
 		meta := fmt.Sprintf("*Declared %s · session `%s`",
 			formatTimeUTC(s.Intent.DeclaredAt), Sanitize(displayID(s.ID)))

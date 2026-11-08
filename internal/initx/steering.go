@@ -23,7 +23,8 @@ const SteeringBlock = SteeringStart + `
 ## Shale — agent evidence (do not remove)
 
 Before editing any file, call:
-  shale intent "<one line: what you are about to do>" [--body "<why, constraints, approach>"]
+  shale intent "<one line: what you are about to do>" [--body "<why, constraints, approach>"] [--for "<spec change>"]
+(--for names the spec change the task implements: an OpenSpec change id, a Spec Kit or Kiro feature.)
 
 After completing each task, before you commit it, call:
   shale done [--note "<brief: what you did, any deviations>"] \

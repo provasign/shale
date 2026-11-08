@@ -103,7 +103,7 @@ func TestInitThenDoctor(t *testing.T) {
 
 func TestIntentDoneNoteFlow(t *testing.T) {
 	root := chrepo(t)
-	code, out, errOut := run(t, "", "intent", "Add rate limiting", "--body", "Redis, 10/min")
+	code, out, errOut := run(t, "", "intent", "Add rate limiting", "--body", "Redis, 10/min", "--for", "add-rate-limiting")
 	if code != 0 || !strings.Contains(out, "✓ intent recorded") {
 		t.Fatalf("intent: code=%d out=%q err=%q", code, out, errOut)
 	}
@@ -131,6 +131,9 @@ func TestIntentDoneNoteFlow(t *testing.T) {
 	}
 	if events[0].Kind != store.KindIntent || events[1].Kind != store.KindCompletion || events[2].Kind != store.KindNote {
 		t.Fatalf("kinds = %s %s %s", events[0].Kind, events[1].Kind, events[2].Kind)
+	}
+	if events[0].For != "add-rate-limiting" {
+		t.Fatalf("intent for = %q; want the spec change", events[0].For)
 	}
 	// Flags after the positional title must be parsed, not folded into it —
 	// the documented call shape is `shale intent "<title>" --body "..."`.

@@ -33,6 +33,7 @@ func TestCardRendersSteleRequirements(t *testing.T) {
 	}
 	s := sampleShale("a1b2c3d4e5")
 	s.Files = []store.FileTouch{{Path: "lib.go", Ops: []string{"edit"}, Via: store.ViaHook}}
+	s.Intent.For = c.Change // shale intent --for: the task implements this change
 	got := Card(Input{Shales: []*store.Shale{s}, Stele: []*SteleCard{c}, PRFiles: []ChangedFile{
 		{Path: "lib.go", Status: "modified"},
 		{Path: ".stele/cards/summer.json", Status: "added"},
@@ -40,6 +41,8 @@ func TestCardRendersSteleRequirements(t *testing.T) {
 	}})
 	for _, must := range []string{
 		"### Requirements · Stele",
+		"> Task: **Add rate limiting to the login endpoint**",
+		"> Implements spec change `" + c.Change + "`",
 		"> ✅ **Approved by owner on 2026-11-02** · checked against 2 approved requirements",
 		"| Summer reading program | added |",
 		"| Limit loans | retired |",
@@ -75,7 +78,7 @@ func TestSteleCardStatuses(t *testing.T) {
 		"weird":     "⚠️ **Unknown Stele status** `weird`",
 	} {
 		var b strings.Builder
-		writeStele(&b, []*SteleCard{{Version: 1, Status: status, Open: 2}})
+		writeStele(&b, []*SteleCard{{Version: 1, Status: status, Open: 2}}, nil)
 		if !strings.Contains(b.String(), want) {
 			t.Errorf("%s: got %q, want %q", status, b.String(), want)
 		}
@@ -96,7 +99,7 @@ func TestSteleCardIsData(t *testing.T) {
 			Reading []string `json:"reading"`
 		}{{Title: "a | b [x](https://evil) #1", Change: "added", Reading: []string{"`break` out"}}}}
 	var b strings.Builder
-	writeStele(&b, []*SteleCard{hostile})
+	writeStele(&b, []*SteleCard{hostile}, nil)
 	out := b.String()
 	if !strings.Contains(out, `| a \| b`) {
 		t.Errorf("a pipe in a title must not split the table row:\n%s", out)

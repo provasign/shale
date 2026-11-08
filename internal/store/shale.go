@@ -64,6 +64,7 @@ type Repo struct {
 type Intent struct {
 	Title       string    `yaml:"title"`
 	Body        string    `yaml:"body,omitempty"`
+	For         string    `yaml:"for,omitempty"` // the spec change the task implements
 	TitleSHA256 string    `yaml:"title_sha256"`
 	BodySHA256  string    `yaml:"body_sha256,omitempty"`
 	DeclaredAt  time.Time `yaml:"declared_at"`

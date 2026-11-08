@@ -41,13 +41,14 @@ func cmdIntent(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("intent", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	body := fs.String("body", "", "why, constraints, approach (2–5 sentences)")
+	forChange := fs.String("for", "", "the spec change this task implements (an OpenSpec change id, a Spec Kit or Kiro feature)")
 	positional, err := parseInterspersed(fs, args)
 	if err != nil {
 		return 1
 	}
 	title := strings.TrimSpace(strings.Join(positional, " "))
 	if title == "" {
-		fmt.Fprintln(stderr, `usage: shale intent "<title>" [--body "..."]`)
+		fmt.Fprintln(stderr, `usage: shale intent "<title>" [--body "..."] [--for <spec change>]`)
 		return 1
 	}
 
@@ -57,7 +58,7 @@ func cmdIntent(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stderr, "shale intent:", err)
 		return 1
 	}
-	ev := store.Event{Kind: store.KindIntent, At: nowUTC(), Title: title, Body: *body}
+	ev := store.Event{Kind: store.KindIntent, At: nowUTC(), Title: title, Body: *body, For: strings.TrimSpace(*forChange)}
 	if err := store.AppendEvent(root, sessionID, ev); err != nil {
 		fmt.Fprintln(stderr, "shale intent:", err)
 		return 1

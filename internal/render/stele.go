@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
+	"github.com/provasign/shale/internal/store"
 )
 
 // SteleCardDir is where Stele (provasign/stele) commits its part of a PR's
@@ -59,7 +61,7 @@ func ParseSteleCard(raw []byte) (*SteleCard, error) {
 // maxSteleRows caps each list in the section; the rest is counted.
 const maxSteleRows = 12
 
-func writeStele(b *strings.Builder, cards []*SteleCard) {
+func writeStele(b *strings.Builder, cards []*SteleCard, shales []*store.Shale) {
 	if len(cards) == 0 {
 		return
 	}
@@ -67,6 +69,14 @@ func writeStele(b *strings.Builder, cards []*SteleCard) {
 	for i, c := range cards {
 		if i > 0 {
 			b.WriteString("\n")
+		}
+		// The tasks declared for this change (shale intent --for): the
+		// requirement, the task that implemented it and the code, in one
+		// place.
+		for _, s := range shales {
+			if s.Intent != nil && s.Intent.For != "" && s.Intent.For == c.Change {
+				fmt.Fprintf(b, "> Task: **%s**\n", Sanitize(s.Intent.Title))
+			}
 		}
 		writeSteleStatus(b, c)
 		if len(c.Requirements) > 0 {

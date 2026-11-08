@@ -50,6 +50,11 @@ type Event struct {
 	// intent
 	Title string `json:"title,omitempty"`
 	Body  string `json:"body,omitempty"`
+	// For is the spec change the task implements (an OpenSpec change id, a
+	// Spec Kit or Kiro feature, a Stele change): the link from the task to
+	// the requirement it serves, so the card reads requirement, task and
+	// code as one story.
+	For string `json:"for,omitempty"`
 
 	// file_touch
 	Path string `json:"path,omitempty"`

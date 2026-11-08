@@ -50,11 +50,12 @@ repo:
 privacy: "redacted"                # full | redacted | hash-only
 
 intent:
-  # Written by the AGENT via `shale intent "<title>" [--body "..."]` BEFORE
+  # Written by the AGENT via `shale intent "<title>" [--body "..."] [--for <spec change>]` BEFORE
   # the first file edit, steered by the CLAUDE.md / AGENTS.md / .cursorrules
   # block written by `shale init`. Never inferred from prompts — if absent,
   # the card shows "no intent declared", never garbage.
   title: "Add rate limiting to the login endpoint"
+  for: "add-rate-limiting"            # optional: the spec change the task implements
   body: |
     Brute force attempts observed in prod logs. Redis counter, 10 req/min
     per IP, return 429 with Retry-After header. Tests required.

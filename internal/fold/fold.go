@@ -305,6 +305,7 @@ func foldRecord(opts Options, evidenceID string, events []store.Event, note stri
 			intent := &store.Intent{
 				TitleSHA256: sha256Hex([]byte(ev.Title)), // hash of UNredacted text (proves capture)
 				DeclaredAt:  ev.At.UTC(),
+				For:         ev.For, // an identifier the agent chose, never prose
 			}
 			if ev.Body != "" {
 				intent.BodySHA256 = sha256Hex([]byte(ev.Body))
