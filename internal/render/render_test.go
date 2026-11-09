@@ -222,6 +222,21 @@ func TestCardGitDerivedEvidence(t *testing.T) {
 	}
 }
 
+// Two tasks of one session have one short ID: the note names it once.
+func TestFallbackNoteNamesSessionOnce(t *testing.T) {
+	var b strings.Builder
+	var shales []*store.Shale
+	for _, id := range []string{"b3b5a24d-cec8-41cf-a589-21611d6348a5", "b3b5a24d-cec8-41cf-a589-21611d6348a5-c2"} {
+		s := sampleShale(id)
+		s.Files = []store.FileTouch{{Path: "main.go", Ops: []string{"edit"}, Via: store.ViaGit}}
+		shales = append(shales, s)
+	}
+	writeHookValidationNotes(&b, shales)
+	if got := b.String(); strings.Count(got, displayID(shales[0].ID)) != 1 || !strings.Contains(got, "Session `") {
+		t.Errorf("note = %q, want the session named once", got)
+	}
+}
+
 func TestCardNoIntentDeclared(t *testing.T) {
 	s := sampleShale("p1q2r3s4t5")
 	s.Intent = nil

@@ -7,6 +7,7 @@ package render
 import (
 	"fmt"
 	"path"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -194,8 +195,9 @@ func writeHookValidationNotes(b *strings.Builder, shales []*store.Shale) {
 				break
 			}
 		}
-		if !haveHook {
-			unverified = append(unverified, displayID(s.ID))
+		// Two tasks of one session share its short ID: name it once.
+		if id := displayID(s.ID); !haveHook && !slices.Contains(unverified, id) {
+			unverified = append(unverified, id)
 		}
 	}
 	if len(unverified) == 0 {
