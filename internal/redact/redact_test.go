@@ -1,6 +1,8 @@
 package redact
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 )
@@ -82,5 +84,36 @@ func TestApplyCountsMultipleHits(t *testing.T) {
 	_, n := e.Apply(in)
 	if n != 3 {
 		t.Fatalf("want 3 hits, got %d", n)
+	}
+}
+
+func TestTermsMatchWholeWordsIgnoringCase(t *testing.T) {
+	e := New().WithTerms([]string{"zeph", "Big Co", "c++lib", "a.b"})
+	cases := map[string]string{
+		"run zeph now":       "run [REDACTED:term] now",
+		"ZEPH/specs":         "[REDACTED:term]/specs",
+		"zephyr stays":       "zephyr stays",
+		"big co ships":       "[REDACTED:term] ships",
+		"use c++lib, ok":     "use [REDACTED:term], ok",
+		"a.b and axb":        "[REDACTED:term] and axb",
+		"pre_zeph is a word": "pre_zeph is a word",
+	}
+	for in, want := range cases {
+		if got, _ := e.Apply(in); got != want {
+			t.Errorf("Apply(%q) = %q, want %q", in, got, want)
+		}
+	}
+}
+
+func TestLoadTermsSkipsCommentsAndRefusesMissing(t *testing.T) {
+	dir := t.TempDir()
+	p := filepath.Join(dir, "t.txt")
+	os.WriteFile(p, []byte("# c\n\n Zeph \nzeph\nAcme\n"), 0o644)
+	terms, err := LoadTerms(p)
+	if err != nil || len(terms) != 2 || terms[0] != "Zeph" || terms[1] != "Acme" {
+		t.Fatalf("terms %q, %v", terms, err)
+	}
+	if _, err := LoadTerms(filepath.Join(dir, "missing.txt")); err == nil {
+		t.Fatal("a missing named list loaded")
 	}
 }

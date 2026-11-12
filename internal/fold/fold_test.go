@@ -671,3 +671,85 @@ func TestResumed(t *testing.T) {
 		t.Fatalf("Resumed = %v, %v; want true, false", store.Resumed(evs, 1), store.Resumed(evs, 4))
 	}
 }
+
+// A project's own private terms never reach committed evidence: not in the
+// request, the notes, the commands, the file paths or the branch, from any of
+// the three term lists.
+func TestRunMasksPrivateTerms(t *testing.T) {
+	root := initRepo(t)
+	cmd := exec.Command("git", "checkout", "-q", "-b", "acme-rollout")
+	cmd.Dir = root
+	if out, err := cmd.CombinedOutput(); err != nil {
+		t.Fatalf("%v: %s", err, out)
+	}
+	if err := os.MkdirAll(filepath.Join(root, ".shale", "local"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	os.WriteFile(filepath.Join(root, ".shale", "redact.txt"), []byte("# team terms\nAcme\n"), 0o644)
+	os.WriteFile(filepath.Join(root, ".shale", "local", "redact.txt"), []byte("Bluebird\n"), 0o644)
+	private := filepath.Join(t.TempDir(), "private.txt")
+	os.WriteFile(private, []byte("orion-x\n"), 0o644)
+	t.Setenv("SHALE_REDACT_FILE", private)
+
+	for _, ev := range []store.Event{
+		{Kind: store.KindIntent, At: t0, Title: "Compare ACME and bluebird specs", Body: "Read Orion-X too."},
+		{Kind: store.KindFileTouch, At: t0.Add(time.Second), Path: "notes/bluebird.md", Op: "write"},
+		{Kind: store.KindCommand, At: t0.Add(time.Minute), Cmd: "go test ./... -run acme", ExitCode: intPtr(0)},
+		{Kind: store.KindNote, At: t0.Add(90 * time.Second), Text: "orion-x read"},
+		{Kind: store.KindCompletion, At: t0.Add(2 * time.Minute), Note: "Acme done; acmes and bluebirds untouched"},
+	} {
+		if err := store.AppendEvent(root, "SESSTERM1", ev); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err := Run(Options{RepoRoot: root, Now: now}); err != nil {
+		t.Fatal(err)
+	}
+	raw, err := os.ReadFile(filepath.Join(root, ".shale", "SESSTERM1.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	low := strings.ToLower(string(raw))
+	for _, banned := range []string{"acme ", "acme-", "acme;", "bluebird.", "bluebird ", "orion-x"} {
+		if strings.Contains(low, banned) {
+			t.Fatalf("evidence leaked %q:\n%s", banned, raw)
+		}
+	}
+	// Whole words only: "acmes" and "bluebirds" are other words.
+	for _, kept := range []string{"acmes", "bluebirds", "[redacted:term]"} {
+		if !strings.Contains(low, kept) {
+			t.Fatalf("evidence lost %q:\n%s", kept, raw)
+		}
+	}
+}
+
+// A term list that is named but missing stops the record from being written.
+func TestRunRefusesWithoutNamedTerms(t *testing.T) {
+	root := initRepo(t)
+	t.Setenv("SHALE_REDACT_FILE", filepath.Join(t.TempDir(), "gone.txt"))
+	for _, ev := range []store.Event{
+		{Kind: store.KindIntent, At: t0, Title: "Anything"},
+		{Kind: store.KindCompletion, At: t0.Add(time.Minute), Note: "done"},
+	} {
+		if err := store.AppendEvent(root, "SESSTERM2", ev); err != nil {
+			t.Fatal(err)
+		}
+	}
+	// The session is skipped, not lost: it folds once the list is back.
+	if _, err := Run(Options{RepoRoot: root, Now: now}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".shale", "SESSTERM2.yaml")); err == nil {
+		t.Fatal("a record was written without the named term list")
+	}
+	list := os.Getenv("SHALE_REDACT_FILE")
+	if err := os.WriteFile(list, []byte("anything\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Run(Options{RepoRoot: root, Now: now}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".shale", "SESSTERM2.yaml")); err != nil {
+		t.Fatal("the session was lost once the list was back")
+	}
+}

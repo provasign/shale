@@ -186,6 +186,21 @@ env-prefix assignments (`API_KEY=… ./run`), secret flags (`--token=…`,
 classification (`test`/`lint`/`scan`/`build`) is the point — only the secret
 *values* are masked.
 
+**Your own private terms.** Names that are confidential but not
+secret-shaped (a client, a codename, a project you studied) can be masked
+too. List them one per line (`#` starts a comment); each matches ignoring
+case, as a whole word, in the request, notes, commands, file paths and
+branch, and becomes `[REDACTED:term]` without saying which:
+
+- `.shale/redact.txt`: committed, shared by the team. In a public
+  repository this list is public, so put only terms you may publish here.
+- `.shale/local/redact.txt`: gitignored, private to your machine.
+- `SHALE_REDACT_FILE`: one or more paths (separated like `PATH`), such as
+  a list kept in a private repository.
+
+A list that is named but cannot be read stops the evidence from being
+written: the session stays local and is folded once the list is back.
+
 **Raw prompt capture is built but switched off.** Shale can also capture the
 raw prompts developers type and redact them (secrets, credentials, tokens)
 before committing a prompts-only transcript alongside the evidence. We have

@@ -62,3 +62,9 @@ func (e *Engine) Apply(s string) (string, int) {
 	}
 	return s, total
 }
+
+// Clean is Apply without the count.
+func (e *Engine) Clean(s string) string {
+	out, _ := e.Apply(s)
+	return out
+}

@@ -251,7 +251,13 @@ func foldRecord(opts Options, evidenceID string, events []store.Event, note stri
 	yamlRel := filepath.Join(".shale", evidenceID+".yaml")
 	yamlAbs := filepath.Join(opts.RepoRoot, yamlRel)
 
-	eng := redact.New()
+	// A project's own private terms (redact.TermFiles) are masked with the
+	// secrets; a term list that cannot be read stops the record from being
+	// written at all.
+	eng, err := redact.ForRepo(opts.RepoRoot)
+	if err != nil {
+		return nil, err
+	}
 	now := opts.Now.UTC()
 	s := &store.Shale{
 		ShaleVersion: store.SchemaVersion,
@@ -261,7 +267,7 @@ func foldRecord(opts Options, evidenceID string, events []store.Event, note stri
 		Privacy:      opts.Privacy,
 		Repo: store.Repo{
 			RootHint: filepath.Base(opts.RepoRoot),
-			Branch:   gitx.Branch(opts.RepoRoot),
+			Branch:   eng.Clean(gitx.Branch(opts.RepoRoot)),
 		},
 		Notes: []store.Note{},
 	}
@@ -445,7 +451,11 @@ func foldRecord(opts Options, evidenceID string, events []store.Event, note stri
 		if ignored[p] {
 			continue
 		}
-		s.Files = append(s.Files, *touches[p])
+		ft := *touches[p]
+		var r int
+		ft.Path, r = eng.Apply(ft.Path)
+		redactions += r
+		s.Files = append(s.Files, ft)
 	}
 
 	// Tier 3 fallback (ADR D4): if the agent declared intent/done, derive
@@ -457,8 +467,10 @@ func foldRecord(opts Options, evidenceID string, events []store.Event, note stri
 			if touches[fc.Path] != nil {
 				continue
 			}
+			path, r := eng.Apply(fc.Path)
+			redactions += r
 			s.Files = append(s.Files, store.FileTouch{
-				Path: fc.Path, Ops: fc.Ops, Via: store.ViaGit,
+				Path: path, Ops: fc.Ops, Via: store.ViaGit,
 			})
 		}
 	}

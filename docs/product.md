@@ -205,6 +205,12 @@ forbidden change; `shale doctor` screams about it.
   shapes plus command-line forms: env-prefix assignments (`API_KEY=x ./run`),
   inline and spaced secret flags (`--token=x`, `--password x`), and bearer
   headers.
+- **A project's own private terms are masked too.** Terms listed in
+  `.shale/redact.txt` (committed), `.shale/local/redact.txt` (gitignored) or
+  the files `SHALE_REDACT_FILE` names match ignoring case as whole words in
+  the request, notes, commands, file paths and branch, and become
+  `[REDACTED:term]`. A named list that cannot be read stops the record from
+  being written; the session stays local until it can be.
 - **Gitignored paths never become evidence.** A hook-reported file touch
   whose path git ignores (`.env`, credentials, key material — the places
   secrets live) is dropped at finalize via `git check-ignore`. Paths outside
