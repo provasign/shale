@@ -71,6 +71,7 @@ func cmdPrune(args []string, stdout, stderr io.Writer) int {
 	}
 	for _, p := range old {
 		rel, _ := filepath.Rel(root, p)
+		rel = filepath.ToSlash(rel) // git's form on every platform
 		if !*dryRun {
 			if err := os.Remove(p); err != nil {
 				fmt.Fprintf(stderr, "shale prune: %s: %v\n", rel, err)
