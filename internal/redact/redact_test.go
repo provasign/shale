@@ -117,3 +117,21 @@ func TestLoadTermsSkipsCommentsAndRefusesMissing(t *testing.T) {
 		t.Fatal("a missing named list loaded")
 	}
 }
+
+// Home directories become ~ and are not counted as secret hits.
+func TestApplyRedactsHomeDirectories(t *testing.T) {
+	e := New()
+	for in, want := range map[string]string{
+		"find /Users/alice/Projects -name x": "find ~/Projects -name x",
+		"cd /home/bob/src && make":           "cd ~/src && make",
+		`dir C:\Users\carol\repo`:            `dir ~\repo`,
+		"cp /Users/Shared/x .":               "cp /Users/Shared/x .",
+		"ls /usr/home2 /var/home":            "ls /usr/home2 /var/home",
+		"path=/Users/dave:/opt/bin":          "path=~:/opt/bin",
+	} {
+		got, n := e.Apply(in)
+		if got != want || n != 0 {
+			t.Errorf("Apply(%q) = %q, %d; want %q, 0", in, got, n, want)
+		}
+	}
+}

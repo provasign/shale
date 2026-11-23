@@ -29,6 +29,8 @@ Usage:
   shale note "<text>"            manual annotation escape hatch
   shale doctor                   diagnose the setup
   shale uninstall [--repo]       remove Shale from this machine (--repo: also the committed files)
+  shale prune --older-than N     delete committed evidence finalized more than N days ago
+                                 (the PR card reads only a PR's own evidence) [--dry-run]
   shale version                  print version
 `
 
@@ -61,6 +63,8 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return cmdDoctor(stdout)
 	case "uninstall":
 		return cmdUninstall(args[1:], stdout, stderr)
+	case "prune":
+		return cmdPrune(args[1:], stdout, stderr)
 	case "version", "--version", "-v":
 		fmt.Fprintln(stdout, "shale", version.Version)
 		return 0

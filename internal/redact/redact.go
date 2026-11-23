@@ -7,6 +7,7 @@ package redact
 import (
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 type rule struct {
@@ -49,10 +50,31 @@ func New() *Engine {
 	}}
 }
 
+// homePath matches a home directory, macOS (/Users/<name>), Linux
+// (/home/<name>) or Windows (C:\Users\<name>), up to the separator after
+// the user name. Evidence is committed, often to a public repository, and a
+// home path names the person and the machine (241 of 324 files in one
+// repository carried /Users/<name>).
+var homePath = regexp.MustCompile(`(?:/Users|/home|[A-Za-z]:\\Users)[/\\][^/\\\s"'\x60:;,)]+`)
+
+// redactHome rewrites home directories to ~. It is not a secret, so it is
+// not counted as a hit; it keeps the rest of the path readable.
+func redactHome(s string) string {
+	return homePath.ReplaceAllStringFunc(s, func(m string) string {
+		// "/Users/Shared" and "/home" with no user are not personal.
+		if strings.HasSuffix(m, "/Shared") || strings.HasSuffix(m, `\Public`) {
+			return m
+		}
+		return "~"
+	})
+}
+
 // Apply replaces every match with a [REDACTED:<rule>] placeholder and
 // returns the cleaned text plus the number of hits. The matched content is
-// intentionally not surfaced anywhere, including logs.
+// intentionally not surfaced anywhere, including logs. Home directories
+// become ~ (not counted).
 func (e *Engine) Apply(s string) (string, int) {
+	s = redactHome(s)
 	total := 0
 	for _, r := range e.rules {
 		s = r.re.ReplaceAllStringFunc(s, func(string) string {
