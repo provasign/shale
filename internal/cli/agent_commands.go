@@ -53,6 +53,7 @@ func cmdIntent(args []string, stdout, stderr io.Writer) int {
 	}
 
 	root := repoRoot()
+	noteHookUpgrade(root, stderr)
 	sessionID, err := agentSession(root)
 	if err != nil {
 		fmt.Fprintln(stderr, "shale intent:", err)
@@ -86,6 +87,7 @@ func cmdDone(args []string, stdout, stderr io.Writer) int {
 	}
 
 	root := repoRoot()
+	noteHookUpgrade(root, stderr)
 	sessionID, err := agentSession(root)
 	if err != nil {
 		fmt.Fprintln(stderr, "shale done:", err)

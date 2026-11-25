@@ -60,6 +60,14 @@ func cmdCapture(args []string, stdin io.Reader, stderr io.Writer) int {
 		return 0
 	}
 
+	// Agent hooks run in every session, so a session's first event is where
+	// a repo set up by an earlier release gets its committing pre-push hook
+	// replaced (once per session: it costs a git call). Silent: an agent
+	// hook's output is the agent's context.
+	if _, err := os.Stat(store.SessionPath(root, sessionID)); os.IsNotExist(err) {
+		noteHookUpgrade(root, nil)
+	}
+
 	for _, ev := range events {
 		if err := store.AppendEvent(root, sessionID, ev); err != nil {
 			logCaptureError(root, err)

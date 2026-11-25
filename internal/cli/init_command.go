@@ -28,7 +28,7 @@ func cmdInit(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("init", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	privacy := fs.String("privacy", store.PrivacyRedacted, "prompt privacy: full | redacted | hash-only")
-	hooksOnly := fs.Bool("hooks-only", false, "only install the pre-push hook (fork contributor path)")
+	hooksOnly := fs.Bool("hooks-only", false, "only install the git hooks (fork contributor path)")
 	global := fs.Bool("global", false, "also wire machine-wide hooks for agents installed on this machine")
 	allowAgent := fs.Bool("allow-agent-commands", false, "auto-approve shale intent/done/note for Claude Code via the committed allowlist")
 	if err := fs.Parse(args); err != nil {

@@ -210,6 +210,41 @@ func InstallPreCommitHook(repoRoot string) (chained bool, err error) {
 	return true, os.WriteFile(path, []byte(out), 0o755)
 }
 
+// IsOldPrePushHook reports whether the repo's pre-push hook is exactly one
+// an earlier release wrote. Those ran `shale finalize --auto-commit`, which
+// commits while the push is in flight: git has already chosen what to send,
+// so the commit stayed behind and every push left one more.
+func IsOldPrePushHook(repoRoot string) bool {
+	raw, err := os.ReadFile(PrePushHookPath(repoRoot))
+	if err != nil {
+		return false
+	}
+	for _, s := range oldPrePushScripts {
+		if string(raw) == s {
+			return true
+		}
+	}
+	return false
+}
+
+// UpgradeOldHooks replaces a pre-push hook an earlier release wrote with the
+// current one, and installs the pre-commit hook that carries the evidence
+// instead. Before this, only a re-run of `shale init` did it, so repos set up
+// earlier kept the committing hook through every upgrade. A hook that is not
+// exactly ours is never touched. Reports whether it replaced one.
+func UpgradeOldHooks(repoRoot string) (bool, error) {
+	if !IsOldPrePushHook(repoRoot) {
+		return false, nil
+	}
+	if _, err := InstallPrePushHook(repoRoot); err != nil {
+		return false, err
+	}
+	if _, err := InstallPreCommitHook(repoRoot); err != nil {
+		return true, err
+	}
+	return true, nil
+}
+
 // PrePushHookPath returns where this repo's pre-push hook actually lives:
 // git's effective hooks directory, which accounts for core.hooksPath
 // overrides (husky/lefthook) and linked worktrees. Shared with doctor so

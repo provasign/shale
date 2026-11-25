@@ -578,3 +578,57 @@ func TestInstallPreCommitHookChainsAndPrePushUpgrades(t *testing.T) {
 		t.Fatalf("pre-push hook:\n%s", raw)
 	}
 }
+
+// A repo set up before v0.2.3 kept the pre-push hook that commits during
+// the push until `shale init` ran again. UpgradeOldHooks replaces exactly
+// that script, adds the pre-commit hook, and touches nothing else.
+func TestUpgradeOldHooks(t *testing.T) {
+	root := t.TempDir()
+	if out, err := exec.Command("git", "-C", root, "init", "-b", "main").CombinedOutput(); err != nil {
+		t.Fatalf("git init: %v\n%s", err, out)
+	}
+	hooks := filepath.Join(root, ".git", "hooks")
+	prePush := filepath.Join(hooks, "pre-push")
+	doctorOK := func() bool {
+		for _, c := range Doctor(root) {
+			if c.Name == "pre-push hook does not commit during the push" {
+				return c.OK
+			}
+		}
+		t.Fatal("doctor has no pre-push check")
+		return false
+	}
+
+	os.WriteFile(prePush, []byte(oldPrePushScripts[0]), 0o755)
+	if doctorOK() {
+		t.Fatal("doctor passed the committing hook")
+	}
+	if up, err := UpgradeOldHooks(root); err != nil || !up {
+		t.Fatalf("upgraded=%v err=%v", up, err)
+	}
+	if raw, _ := os.ReadFile(prePush); string(raw) != prePushScript {
+		t.Fatalf("pre-push hook:\n%s", raw)
+	}
+	if raw, _ := os.ReadFile(filepath.Join(hooks, "pre-commit")); string(raw) != preCommitScript {
+		t.Fatalf("pre-commit hook:\n%s", raw)
+	}
+	if !doctorOK() {
+		t.Fatal("doctor failed the current hook")
+	}
+	if up, _ := UpgradeOldHooks(root); up {
+		t.Fatal("current hook reported as upgraded")
+	}
+
+	// A user's own hook that copied the line is reported, never rewritten.
+	mine := "#!/bin/sh\nmake lint\nshale finalize --auto-commit\n"
+	os.WriteFile(prePush, []byte(mine), 0o755)
+	if up, _ := UpgradeOldHooks(root); up {
+		t.Fatal("rewrote a user's hook")
+	}
+	if raw, _ := os.ReadFile(prePush); string(raw) != mine {
+		t.Fatalf("user hook changed:\n%s", raw)
+	}
+	if doctorOK() {
+		t.Fatal("doctor passed a user hook that commits during the push")
+	}
+}

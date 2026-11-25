@@ -70,6 +70,18 @@ in progress when you commit is recorded with a later commit, after its
 each session the push does not carry yet. Commit once the task is done, or
 run `shale finalize --auto-commit` to commit the evidence on its own.
 
+### A `chore(shale): session evidence` commit appears after every push
+
+The repo has the pre-push hook a release before v0.2.3 wrote: it ran `shale
+finalize --auto-commit` during the push, when git had already chosen what to
+send, so the commit was left behind for the next push. From v0.2.9 Shale
+replaces that exact script the next time it runs in the repo and adds the
+pre-commit hook; `shale init` does the same at once. A hook you edited
+yourself is never rewritten: `shale doctor` names it, and the fix is to swap
+`shale finalize --auto-commit` for `shale prepush`. An evidence commit already
+left behind is ordinary history: push it, or drop it with `git reset HEAD~1`
+(the files stay on disk and your next commit carries them).
+
 ### Pre-commit hook didn't install
 
 `shale init` adds one line to an existing pre-commit hook (Stele's, a

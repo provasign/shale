@@ -74,8 +74,8 @@ func cmdPrepush(stderr io.Writer) int {
 			}
 		}
 		switch {
-		case title == "" && !closed:
-			continue // ambient capture: nothing to publish
+		case title == "":
+			continue // ambient capture, no task declared: nothing to publish
 		case closed:
 			fmt.Fprintf(stderr, "shale: %s · %q is done but not committed: it goes with your next commit (or run `shale finalize --auto-commit`)\n", tool, title)
 		default:

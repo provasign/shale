@@ -12,8 +12,8 @@ import (
 	"github.com/provasign/shale/internal/initx"
 )
 
-// cmdFinalize folds session events into committed shale YAML. Installed as
-// the pre-push hook with --auto-commit; safe to run manually. Fail-open:
+// cmdFinalize folds session events into committed shale YAML; safe to run
+// manually. Pre-push hooks from before v0.2.3 call it with --auto-commit. Fail-open:
 // finalize problems must never block a push (the hook script also exits 0).
 func cmdFinalize(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("finalize", flag.ContinueOnError)
@@ -24,6 +24,15 @@ func cmdFinalize(args []string, stdout, stderr io.Writer) int {
 	}
 
 	root := repoRoot()
+	// Only the pre-push hook an earlier release wrote calls this with
+	// --auto-commit as a matter of course. Committing there strands the
+	// commit, so replace that hook and do what the current one does.
+	if *autoCommit && initx.IsOldPrePushHook(root) {
+		if noteHookUpgrade(root, stderr) {
+			fmt.Fprintln(stderr, "shale: nothing was committed; run `shale finalize --auto-commit` again if you meant to commit the evidence now")
+			return cmdPrepush(stderr)
+		}
+	}
 	cfg := initx.LoadConfig(root)
 	res, err := fold.Run(fold.Options{RepoRoot: root, Privacy: cfg.Privacy})
 	if err != nil {
@@ -76,4 +85,21 @@ func describeRecord(path string) string {
 		what = fmt.Sprintf("%q", s.Intent.Title)
 	}
 	return tool + " · " + what
+}
+
+// noteHookUpgrade replaces a pre-push hook an earlier release wrote (see
+// initx.UpgradeOldHooks) and says so on w, when w is not nil. Reports
+// whether it replaced one.
+func noteHookUpgrade(root string, w io.Writer) bool {
+	upgraded, err := initx.UpgradeOldHooks(root)
+	if !upgraded {
+		return false
+	}
+	if w != nil {
+		fmt.Fprintf(w, "shale: replaced the pre-push hook an earlier Shale wrote (%s): it committed evidence during the push, and the push left that commit behind. Your commits now carry the evidence (pre-commit hook).\n", initx.DisplayHookPath(root))
+		if err != nil {
+			fmt.Fprintln(w, "shale: pre-commit hook:", err, "— run `shale init`")
+		}
+	}
+	return true
 }

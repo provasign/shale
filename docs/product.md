@@ -47,7 +47,8 @@ their agents are wired on `git clone` — there is no per-developer setup:
 | Repo hook config (`.claude/settings.json`, `.github/hooks/shale.json`, `.cursor/hooks.json`, `.codex/hooks.json`) | Streams file touches, commands, prompts into the session record for hook-capable agents |
 | `.shale/` scaffold | Committed, schema-versioned, redacted evidence store; `local/` is gitignored working state |
 | `.github/workflows/shale.yml` | Renders the card on PRs — API only, never a checkout |
-| `.git/hooks/pre-push` (local) | `shale finalize --auto-commit` — folds and commits evidence before push, fail-open |
+| `.git/hooks/pre-commit` (local) | `shale precommit` — adds the evidence of tasks closed since the last commit to the commit being made, fail-open |
+| `.git/hooks/pre-push` (local) | `shale prepush` — says which sessions the push does not carry yet; never commits, never blocks |
 
 `shale uninstall` reverses all of it under the same never-destroy rule in
 the other direction: only what Shale wrote is removed (fenced steering
@@ -163,8 +164,8 @@ LAPTOP (offline)                          CI (forge API only)
 agent hooks ─→ shale capture ─┐
 steering    ─→ shale intent   ├→ .shale/local/<session>.jsonl   (events)
                shale done    ─┘
-                    git push → pre-push → shale finalize
-                                  │  redact → fold → commit
+          shale done / git commit → pre-commit → shale precommit
+                                  │  redact → fold → stage with the commit
                                   ▼
                         .shale/<session>.yaml + transcripts/   (committed)
                                   ▼

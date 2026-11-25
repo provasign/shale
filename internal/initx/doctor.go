@@ -54,6 +54,9 @@ func Doctor(repoRoot string) []Check {
 	add("pre-commit hook adds evidence to commits", HookRunsPrecommit(repoRoot),
 		fmt.Sprintf("run `shale init` — it adds `shale precommit` to the hook at %s (honors core.hooksPath)", DisplayPreCommitHookPath(repoRoot)))
 
+	add("pre-push hook does not commit during the push", !prePushCommits(repoRoot),
+		prePushFix(repoRoot))
+
 	// Events flowing: most recent capture activity, active or archived.
 	add("capture events seen", lastActivity(repoRoot) != "",
 		"no session events yet — run an agent session, or check hooks with the items above")
@@ -66,6 +69,21 @@ func Doctor(repoRoot string) []Check {
 func HookRunsFinalize(repoRoot string) bool {
 	raw, err := os.ReadFile(PrePushHookPath(repoRoot))
 	return err == nil && strings.Contains(string(raw), "shale finalize")
+}
+
+// prePushCommits reports whether the pre-push hook runs `shale finalize
+// --auto-commit`: an earlier release's hook, or a user hook that copied its
+// line. A commit made there is left behind by the push it was meant for.
+func prePushCommits(repoRoot string) bool {
+	raw, err := os.ReadFile(PrePushHookPath(repoRoot))
+	return err == nil && strings.Contains(string(raw), "shale finalize --auto-commit")
+}
+
+func prePushFix(repoRoot string) string {
+	if IsOldPrePushHook(repoRoot) {
+		return "run `shale init` — it replaces the hook an earlier Shale wrote, which left an evidence commit behind after each push"
+	}
+	return fmt.Sprintf("in %s, replace `shale finalize --auto-commit` with `shale prepush`; a commit made during a push is left behind by it", DisplayHookPath(repoRoot))
 }
 
 // HookRunsPrecommit reports whether the repo's pre-commit hook runs `shale

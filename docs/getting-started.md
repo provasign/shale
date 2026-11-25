@@ -25,12 +25,15 @@ Agent calls: shale done --note "…"
   → finalizes on the spot:
      reads .shale/local/<session>.jsonl
      redacts → folds → writes .shale/<session>.yaml
-     commits the evidence file
+     stages it for your commit
+
+git commit
+  → pre-commit hook adds the evidence of tasks closed since the last commit
 
 git push
-  → evidence commit rides along
-  → pre-push hook runs shale finalize --auto-commit
-    as a safety net for sessions without a done
+  → the evidence goes with the commits
+  → pre-push hook says which sessions the push does not carry yet
+    (it never commits)
                                               PR opened / updated
                                                 → pull_request_target fires
                                                   (runs workflow from default branch)
@@ -47,10 +50,11 @@ git push
 Key points:
 - **Everything on the left stays on the laptop** — events are in gitignored
   `.shale/local/`; raw prompts are never included in committed evidence.
-- **The evidence commit rides with your push** — `shale done` finalizes and
-  commits on the spot, so the commit exists before you push and lands with the
-  code. The pre-push hook is the safety net for sessions that never called
-  `done`.
+- **The evidence rides your own commits** — `shale done` stages it and the
+  pre-commit hook adds it, so it exists before you push and lands with the
+  code. Only when the code is already committed does `done` give the evidence
+  a commit of its own, still before the push. Nothing is committed during a
+  push: git has already chosen what to send by then.
 - **The renderer never touches your code** — it reads the diff and `.shale/`
   files through the GitHub API. No checkout means no privilege escalation on
   `pull_request_target`.
@@ -106,7 +110,8 @@ You'll see something like:
   ✓ Claude auto-approve        (shale intent/done/note allowlisted in .claude/settings.json)
   ✓ Created .shale/            (committed; .shale/local/ gitignored)
   ✓ Wrote .github/workflows/shale.yml
-  ✓ Installed pre-push hook    (runs shale finalize)
+  ✓ Installed pre-push hook    (says which sessions a push does not carry yet)
+  ✓ Installed pre-commit hook  (commits carry the evidence of finished tasks)
   → Commit these files. Contributors and their agents are wired on clone.
 
 The `[y/N]` question only appears at a real terminal (never in scripts or
@@ -125,7 +130,8 @@ What each piece does:
 | Repo capture hooks | Stream file touches, commands, and prompts into the session record for agents with hook support. **Self-guarding**: teammates without Shale installed see zero errors |
 | `.shale/` | Committed, schema-versioned, redacted evidence. `local/` working state is gitignored |
 | `.github/workflows/shale.yml` | Renders the card on every PR via the GitHub API — never checks out PR code |
-| Pre-push hook | Safety net: finalizes any session `shale done` didn't (interrupted agents, sessions without a done) and commits the evidence. Fail-open: it can never block your push |
+| Pre-commit hook | Adds the evidence of every task closed since the last commit (interrupted agents, sessions without a done) to the commit being made. Fail-open: it can never block your commit |
+| Pre-push hook | Says which sessions the push does not carry yet. Never commits, never blocks your push |
 
 ### The card-rendering workflow
 
@@ -195,27 +201,35 @@ agent hook configs are merged additively.
 marker and edits only that one — it never touches comments posted by other
 tools. Their card and Shale's card coexist as separate comments.
 
-**Existing pre-push hooks are the one thing to check.** Shale never clobbers
-a hook it didn't write. `shale init` honors `core.hooksPath` (husky,
-lefthook), so the hook lands where git will actually run it — but if a hook
-manager already owns the `pre-push` file, init prints
-`! Pre-push hook skipped` and you chain Shale in yourself:
+**Existing hooks are the one thing to check.** Shale never clobbers a hook
+it didn't write. `shale init` honors `core.hooksPath` (husky, lefthook), so
+the hooks land where git will actually run them. An existing pre-commit hook
+gets Shale's line added after its shebang. If a hook manager already owns the
+`pre-push` file, init prints `! Pre-push hook skipped`; chain Shale in
+yourself if you want its notes on push:
 
 ```sh
-shale finalize --auto-commit || echo "shale: finalize failed (push continues)" >&2
+command -v shale >/dev/null 2>&1 && shale prepush
 ```
 
 Add that line to `.husky/pre-push` (husky), a `pre-push` job in
-`lefthook.yml` (lefthook), or your existing `.git/hooks/pre-push`. Without
-it, finalize never runs on push and PRs get the "No shale for this PR" nudge
-instead of a card. `shale doctor` reports the exact hook location it checks.
+`lefthook.yml` (lefthook), or your existing `.git/hooks/pre-push`. Do not
+use `shale finalize --auto-commit` there: a commit made during a push is left
+behind by it. `shale doctor` reports the exact hook locations it checks.
+
+**Repos set up before v0.2.3** have a pre-push hook that ran `shale finalize
+--auto-commit`, leaving a `chore(shale): session evidence` commit behind after
+pushes. From v0.2.9 Shale replaces that exact script the next time it runs in
+the repo (an agent session, `shale intent`, `shale done`, or the push itself),
+and adds the pre-commit hook. A hook you edited is reported by `shale doctor`,
+never rewritten.
 
 ### Options
 
 ```sh
 shale init --privacy full|redacted|hash-only   # prompt persistence (default: redacted)
 shale init --global                            # also wire ~/.claude, ~/.cursor, … machine-wide
-shale init --hooks-only                        # just the pre-push hook (fork contributors)
+shale init --hooks-only                        # just the git hooks (fork contributors)
 ```
 
 ---
@@ -234,10 +248,10 @@ Work with your agent as usual. Behind the scenes:
    ```
    shale done --note "…" --model … --tokens-in … --tokens-out …
    ```
-4. `git push` triggers the pre-push hook → `shale finalize --auto-commit`
-   folds the session into `.shale/<session>.yaml`, commits it, and lets the
-   push through. Raw prompt text is **not** included — see
-   [privacy](#what-the-evidence-looks-like) below.
+4. `shale done` folds the session into `.shale/<session>.yaml` and stages
+   it; your next commit carries it (the pre-commit hook adds any task closed
+   without a done), and `git push` sends it with the code. Raw prompt text is
+   **not** included — see [privacy](#what-the-evidence-looks-like) below.
 
 > **Note:** the finalize commit is created during the push. If you open a PR
 > immediately after the first push, the evidence is already there. If you push

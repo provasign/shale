@@ -119,7 +119,7 @@ agent receives task
   → steering prompt asks the agent to declare:  shale intent "…"
   → hooks + CLI record session evidence locally (redacted)
   → agent closes with:  shale done  (evidence finalized + committed under .shale/)
-  → git push carries the evidence; the pre-push hook finalizes anything left
+  → your next commit carries the evidence (pre-commit hook); git push sends it
   → CI renders the card via the GitHub Action  (API-only, no checkout)
 ```
 
@@ -133,7 +133,8 @@ committed — so one person runs it and the whole team is covered on clone:
   installed Shale
 - `.shale/` storage for redacted, schema-versioned evidence
 - `.github/workflows/shale.yml` — renders the card on PRs
-- a local pre-push hook that finalizes any session `shale done` didn't (safety net)
+- local git hooks: pre-commit adds the evidence of finished tasks to your
+  commit; pre-push says which sessions a push does not carry yet and never commits
 - optionally — with your explicit consent (interactive prompt or
   `--allow-agent-commands`) — a Claude Code permissions allowlist for exactly
   `shale intent` / `shale done` / `shale note`, so your team's agents stop

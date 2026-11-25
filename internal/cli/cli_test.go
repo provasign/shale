@@ -530,3 +530,51 @@ func TestDetectPRNumber(t *testing.T) {
 		t.Fatalf("no event path should yield 0, got %d", n)
 	}
 }
+
+// The pre-push hook from before v0.2.3 runs `finalize --auto-commit` while
+// the push is in flight, and the push leaves that commit behind. Called
+// from it, finalize replaces the hook and commits nothing; called again, it
+// commits as asked.
+func TestFinalizeFromOldPrePushHook(t *testing.T) {
+	root := chrepo(t)
+	run(t, "", "init")
+	for _, args := range [][]string{{"add", "-A"}, {"commit", "-m", "scaffold", "--no-verify"}} {
+		cmd := exec.Command("git", args...)
+		cmd.Dir = root
+		cmd.Run()
+	}
+	hook := filepath.Join(root, ".git", "hooks", "pre-push")
+	old := "#!/bin/sh\n# shale pre-push hook (managed by 'shale init')\nshale finalize --auto-commit || echo \"shale: finalize failed (push continues)\" >&2\nexit 0\n"
+	os.WriteFile(hook, []byte(old), 0o755)
+	os.Remove(filepath.Join(root, ".git", "hooks", "pre-commit"))
+	run(t, "", "intent", "Quick fix")
+	if raw, _ := os.ReadFile(hook); string(raw) == old {
+		t.Fatal("intent left the old hook in place")
+	}
+	os.WriteFile(hook, []byte(old), 0o755)
+	os.Remove(filepath.Join(root, ".git", "hooks", "pre-commit"))
+	// Leave the evidence unstaged, as a session without a done would.
+	store.AppendEvent(root, "s-open", store.Event{Kind: store.KindIntent, At: nowUTC(), Title: "Open task"})
+
+	head := func() string {
+		out, _ := exec.Command("git", "-C", root, "rev-parse", "HEAD").Output()
+		return strings.TrimSpace(string(out))
+	}
+	before := head()
+	code, _, errOut := run(t, "", "finalize", "--auto-commit")
+	if code != 0 || head() != before {
+		t.Fatalf("committed from the old hook: code=%d err=%s", code, errOut)
+	}
+	if !strings.Contains(errOut, "replaced the pre-push hook") {
+		t.Fatalf("no notice: %q", errOut)
+	}
+	if raw, _ := os.ReadFile(hook); !strings.Contains(string(raw), "shale prepush") {
+		t.Fatalf("hook not replaced:\n%s", raw)
+	}
+	if _, err := os.Stat(filepath.Join(root, ".git", "hooks", "pre-commit")); err != nil {
+		t.Fatal("pre-commit hook not installed")
+	}
+	if code, _, errOut = run(t, "", "finalize", "--auto-commit"); code != 0 || head() == before {
+		t.Fatalf("second finalize did not commit: code=%d err=%s", code, errOut)
+	}
+}
